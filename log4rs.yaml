@@ -1,0 +1,13 @@
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "[{d(%Y-%m-%d %H:%M:%S)}] [{f}:{L}] [{h({l})}] {m}{n}"
+    filters:
+      - kind: threshold
+        level: info
+
+root:
+  level: info
+  appenders:
+    - stdout
