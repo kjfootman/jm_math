@@ -22,7 +22,7 @@ pub fn SOR(A: &Matrix, w: f64) -> Result<Matrix, Box<dyn Error>> {
 
             for j in IA[i]..uptr[i] {
                 jrow = JA[j];
-                t1 = AA[j] / AA[uptr[jrow]];
+                t1 = w * AA[j] / AA[uptr[jrow]];
                 local_AA.push(t1);
             }
 
@@ -48,3 +48,25 @@ pub fn SOR(A: &Matrix, w: f64) -> Result<Matrix, Box<dyn Error>> {
 
     Matrix::from_csr(IA, JA, AA)
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use crate::prelude::Vector;
+
+//     use super::*;
+
+//     #[test]
+//     fn SOR_test() -> Result<(), Box<dyn Error>> {
+//         let A = Matrix::from_rows([
+//             [4.0 / 1.2, 0.0, 0.0, 0.0],
+//             [2.0, 5.0 / 1.2, 0.0, 0.0],
+//             [0.0, 0.0, 1.0 / 1.2, 0.0],
+//             [2.0, 0.0, 0.0, 6.0 / 1.2],
+//         ])?;
+
+//         let x = SOR(&A, 1.2)?;
+//         println!("{x:.4}");
+
+//         Ok(())
+//     }
+// }

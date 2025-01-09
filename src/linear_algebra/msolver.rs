@@ -15,25 +15,69 @@ use std::error::Error;
 
 /// A struct for solving systems of equations.
 ///
-/// The `MSolver` struct is designed for solving systems of equations.
+/// The `MSolver` is a struct designed to solve systems of equations.
 /// It allows you to apply various numerical methods.
 /// The following methods are available for you to use.
-/// - [x] Conjugate Gradient
-/// - [x] GMRES
-/// - [x] Householder GMRES
+///
+/// **iterative solvers**
+/// - [x] Conjugate Gradient method for symmetric matrix - CG
+/// - [x] Gernalized Minimum RESidual method with restart m - GMRES(m)
+/// - [x] Householder version of GMRES(m) - HMGRES(m)
+///
+/// **preconditioners**
+/// - Jacobi
+/// - Successive Over Relaxation - SOR(w)
+/// - Incomplete Lower Upper factorization - ILU0
 ///
 /// The methods mentioned above return a `Vector` of solutions
 /// when the relative residual L2-norm converges under the specified tolerance.
 ///
-/// # Initialization
+/// # Usage
 ///
-/// Examples
+/// The `MSolver` can be initialized with `build()` method.
+/// And then the maxium iteration number, tolerance and preconditioner can be specified with it.
+/// You can choose a solver depending on your problem.
+///
+/// **Examples**
 ///
 /// ```rust
-/// let x = 3.0;
-/// ```
+/// # #![allow(non_snake_case)]
+/// # use std::error::Error;
+/// use jm_math::prelude::{MSolver, Matrix, PreconType, Vector};
 ///
-/// # Usage
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// // coeffcient matrix
+/// let A = Matrix::from_rows([
+///     [4.0, 3.0, 0.0, 1.0],
+///     [2.0, 5.0, 3.0, 0.0],
+///     [0.0, 0.0, 1.0, 1.0],
+///     [2.0, 0.0, 0.0, 6.0],
+/// ])?;
+///
+/// // source vector
+/// let b = Vector::from_iter([8.0, 10.0, 2.0, 8.0]);
+///
+/// // initialize MSolver
+/// let ms = MSolver::build(&A, &b)
+///     .max_iter(100)
+///     .preconditioner(PreconType::ILU0)
+///     .tolerance(1e-8)
+///     .finish();
+///
+/// // It's also possible to initialize to its default state.
+/// // let ms = MSolver::new(&A, &b);
+///
+/// // solve with GMRES(m)
+/// let x = ms.GMRES(2)?;
+/// println!("{x:.4}");
+///
+/// // error
+/// let error = &x - Vector::from_iter([1.0, 1.0, 1.0, 1.0]);
+/// assert!(error.magnitude() < 1e-5);
+///
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Copy)]
 pub struct MSolver<'a> {
     iMax: usize,
@@ -50,7 +94,7 @@ pub struct MSolverBuilder<'a> {
 
 impl<'a> MSolver<'a> {
     pub fn new(A: &'a Matrix, b: &'a Vector) -> Self {
-        //! Returns a new `MSolver`.
+        //! Returns a default `MSolver`.
         MSolver {
             iMax: 1000,
             tol: 1E-7,
@@ -61,7 +105,7 @@ impl<'a> MSolver<'a> {
     }
 
     pub fn build(A: &'a Matrix, b: &'a Vector) -> MSolverBuilder<'a> {
-        //! Returns an `MSolverBuilder instance, which is used to build an `MSolver`.
+        //! Returns an `MSolverBuilder` struct, which is used to build an `MSolver`.
         let ms = MSolver {
             iMax: 1000,
             tol: 1E-7,
@@ -74,17 +118,107 @@ impl<'a> MSolver<'a> {
     }
 
     pub fn GMRES(&self, restart: usize) -> Result<Vector, Box<dyn Error>> {
-        //! GMRES solver
+        //! Solves systems of euqations using GMRES(m).
+        //!
+        //! # Examples
+        //!
+        //! ```rust
+        //! # #![allow(non_snake_case)]
+        //! # use std::error::Error;
+        //! use jm_math::prelude::{MSolver, Matrix, PreconType, Vector};
+        //! # fn main() -> Result<(), Box<dyn Error>> {
+        //! # let A = Matrix::from_rows([
+        //! #     [5.0, 3.0, 0.0, 1.0],
+        //! #     [2.0, 6.0, 3.0, 0.0],
+        //! #     [0.0, 0.0, 1.0, 1.0],
+        //! #     [2.0, 0.0, 0.0, 6.0],
+        //! # ])?;
+        //! # let b = Vector::from_iter([9.0, 11.0, 2.0, 8.0]);
+        //!
+        //! # // initialize MSolver
+        //! let ms = MSolver::build(&A, &b)
+        //!     .max_iter(100)
+        //!     .preconditioner(PreconType::SOR(1.2))
+        //!     .tolerance(1e-8)
+        //!     .finish();
+        //!
+        //! // solve with GMRES(m)
+        //! let x = ms.GMRES(2)?;
+        //! println!("{x:.4}");
+        //!
+        //! # Ok(())
+        //! # }
+        //! ```
         gmres::solve(restart, self)
     }
 
     pub fn HGMRES(&self, restart: usize) -> Result<Vector, Box<dyn Error>> {
-        //! HGMRES solver
+        //! Solves systems of euqations using HGMRES(m).
+        //!
+        //! # Examples
+        //!
+        //! ```rust
+        //! # #![allow(non_snake_case)]
+        //! # use std::error::Error;
+        //! use jm_math::prelude::{MSolver, Matrix, PreconType, Vector};
+        //! # fn main() -> Result<(), Box<dyn Error>> {
+        //! # let A = Matrix::from_rows([
+        //! #     [5.0, 3.0, 0.0, 1.0],
+        //! #     [2.0, 6.0, 3.0, 0.0],
+        //! #     [0.0, 0.0, 1.0, 1.0],
+        //! #     [2.0, 0.0, 0.0, 6.0],
+        //! # ])?;
+        //! # let b = Vector::from_iter([9.0, 11.0, 2.0, 8.0]);
+        //!
+        //! # // initialize MSolver
+        //! let ms = MSolver::build(&A, &b)
+        //!     .max_iter(100)
+        //!     .preconditioner(PreconType::SOR(1.2))
+        //!     .tolerance(1e-8)
+        //!     .finish();
+        //!
+        //! // solve with HGMRES(m)
+        //! let x = ms.HGMRES(2)?;
+        //! println!("{x:.4}");
+        //!
+        //! # Ok(())
+        //! # }
+        //! ```
         hgmres::solve(restart, self)
     }
 
     pub fn CG(&self) -> Result<Vector, Box<dyn Error>> {
-        //! Conjugate Gradient solver
+        //! Solves systems of euqations using CG for symmetric matrix.
+        //!
+        //! # Examples
+        //!
+        //! ```rust
+        //! # #![allow(non_snake_case)]
+        //! # use std::error::Error;
+        //! use jm_math::prelude::{MSolver, Matrix, PreconType, Vector};
+        //! # fn main() -> Result<(), Box<dyn Error>> {
+        //! # let A = Matrix::from_rows([
+        //! #     [5.0, 0.0, 1.0, 0.0],
+        //! #     [0.0, 6.0, 2.0, 3.0],
+        //! #     [1.0, 2.0, 9.0, 4.0],
+        //! #     [0.0, 3.0, 4.0, 8.0],
+        //! # ])?;
+        //! # let b = Vector::from_iter([6.0, 11.0, 16.0, 15.0]);
+        //!
+        //! # // initialize MSolver
+        //! let ms = MSolver::build(&A, &b)
+        //!     .max_iter(100)
+        //!     .preconditioner(PreconType::Jacobi)
+        //!     .tolerance(1e-8)
+        //!     .finish();
+        //!
+        //! // solve with CG
+        //! let x = ms.CG()?;
+        //! println!("{x:.4}");
+        //!
+        //! # Ok(())
+        //! # }
+        //! ```
         conjugate_gradient::solve(self)
     }
 }

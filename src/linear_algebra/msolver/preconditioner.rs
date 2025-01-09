@@ -7,11 +7,12 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon::slice::{ParallelSlice, ParallelSliceMut};
 use std::error::Error;
 
+/// Preconditioner type
 #[derive(Debug, Clone, Copy)]
 pub enum PreconType {
     Jacobi,
-    ILU0,
     SOR(f64),
+    ILU0,
 }
 
 pub fn get_preconditioner(A: &Matrix, pType: PreconType) -> Result<Preconditioner, Box<dyn Error>> {
@@ -251,9 +252,10 @@ mod tests {
         assert_eq!(v, Vector::from_iter(vec![1.0, 1.0, 1.0]));
 
         // Test for SOR(w) preconditioner.
-        let P = get_preconditioner(&A, PreconType::SOR(1.0))?;
+        let P = get_preconditioner(&A, PreconType::SOR(1.2))?;
         let v = preconditioning(&P, &y)?;
-        assert_eq!(v, Vector::from_iter(vec![1.0, 1.0, -0.4]));
+        // assert_eq!(v, Vector::from_iter(vec![1.0, 1.0, -0.4]));
+        assert_eq!(v, Vector::from_iter(vec![1.2, 0.6, -1.2]));
 
         // Test for ILU(0) preconditioner.
         let P = get_preconditioner(&A, PreconType::ILU0)?;
@@ -308,7 +310,11 @@ mod tests {
             }
             5 => {
                 // 3 x 3 matrix
-                Matrix::from_rows([[1.0, 0.0, 1.0], [0.0, 2.0, 2.0], [3.0, 4.0, 5.0]])
+                Matrix::from_rows([
+                    [1.0, 0.0, 1.0],
+                    [0.0, 2.0, 2.0],
+                    [3.0, 4.0, 5.0]
+                ])
             }
             6 => {
                 // 3 x 3 matrix

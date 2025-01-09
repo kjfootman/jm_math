@@ -19,6 +19,7 @@
     - [x] `PreconType` 추가
     - [x] get_preconditioner() 추가 --> GMRES/HGMRES/CG Preconditioner 선언 간편화
     - [ ] 상태출력 주기 설정 기능 추가 (iteration / write)
+    - [ ] SOR preconditioner 검증
 4. HGMRES 병렬코드 개선
     - [x] $Pv$ 계산 모듈 개선
         - 병렬모듈(rayon) 적용하였으나 시간이 오래 걸림

@@ -1,5 +1,16 @@
 //! module for linear algebra.
-//! Some examples here
+//!
+//! The `linear_algebra` module provides various structs
+//! and functions for performing linear algebra operations.
+//!
+//! The `Matrix` and `Vector` structs are the primary data structures
+//! for matrix and vector arithmetic.
+//! And the `MSolver` struct is used to compute solutions for systems of equations.
+//!
+//! ```rust
+#![doc = include_str!("../examples/linear_algebra.rs")]
+//! ```
+
 mod matrix;
 mod msolver;
 mod vector;

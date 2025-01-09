@@ -39,8 +39,8 @@ use std::{error::Error, fmt::Display, io::BufRead, ops::Mul};
 /// # #![allow(non_snake_case)]
 /// # use std::error::Error;
 /// use jm_math::prelude::Matrix;
-/// # fn main() -> Result<(), Box<dyn Error>> {
 ///
+/// # fn main() -> Result<(), Box<dyn Error>> {
 /// // Initializes from an array of rows.
 /// // 1.0    0.0
 /// // 0.0    1.0

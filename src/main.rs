@@ -56,9 +56,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{io::Read, path::PathBuf};
     use rayon::prelude::*;
-    const DATA_PATH: &str ="/Users/h1007185/workspace/Rust/matrix/big_size";
+    use std::{io::Read, path::PathBuf};
+    const DATA_PATH: &str = "/Users/h1007185/workspace/Rust/matrix/big_size";
 
     #[test]
     fn big_size_matrix_test() -> Result<(), Box<dyn Error>> {
@@ -71,22 +71,34 @@ mod tests {
         let mut buf = String::new();
 
         let fsize = file_aa.read_to_string(&mut buf)?;
-        let aa = buf.par_split_whitespace().map(|val| val.parse::<f64>().unwrap()).collect::<Vec<_>>();
+        let aa = buf
+            .par_split_whitespace()
+            .map(|val| val.parse::<f64>().unwrap())
+            .collect::<Vec<_>>();
         println!("file size: {fsize} aa length: {}", aa.len());
         buf.clear();
 
         let fsize = file_bb.read_to_string(&mut buf)?;
-        let bb = buf.par_split_whitespace().map(|val| val.parse::<f64>().unwrap()).collect::<Vec<_>>();
+        let bb = buf
+            .par_split_whitespace()
+            .map(|val| val.parse::<f64>().unwrap())
+            .collect::<Vec<_>>();
         println!("file size: {fsize} bb length: {}", bb.len());
         buf.clear();
 
         let fsize = file_cl.read_to_string(&mut buf)?;
-        let cl = buf.par_split_whitespace().map(|val| val.parse::<usize>().unwrap()).collect::<Vec<_>>();
+        let cl = buf
+            .par_split_whitespace()
+            .map(|val| val.parse::<usize>().unwrap())
+            .collect::<Vec<_>>();
         println!("file size: {fsize} cl length: {}", cl.len());
         buf.clear();
 
         let fsize = file_rl.read_to_string(&mut buf)?;
-        let rl = buf.par_split_whitespace().map(|val| val.parse::<usize>().unwrap()).collect::<Vec<_>>();
+        let rl = buf
+            .par_split_whitespace()
+            .map(|val| val.parse::<usize>().unwrap())
+            .collect::<Vec<_>>();
         println!("file size: {fsize} rl length: {}", rl.len());
         buf.clear();
 

@@ -2,7 +2,9 @@ use crate::linear_algebra;
 use crate::linear_algebra::msolver::{preconditioner as pc, MSolver};
 use crate::linear_algebra::Vector;
 use crate::JmError;
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 use std::error::Error;
 
 pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
@@ -49,6 +51,7 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
             });
 
             h[j] += (j..n)
+                // todo: parallelization needed. sigma = 2 * U_T * v
                 .into_par_iter()
                 .map(|i| -2.0 * U[j][0] * U[j][i - j] * z[i])
                 .sum::<f64>();
