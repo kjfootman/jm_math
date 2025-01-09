@@ -68,7 +68,7 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
 
             // lucky breakdown
             if H[j][j + 1].abs() < tol {
-                println!("GMRES({restart}) lucky breakdown");
+                log::info!("GMRES({restart}) lucky breakdown");
                 restart = j + 1;
                 break;
             }
@@ -107,7 +107,7 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
         return Err(Box::new(err));
     }
 
-    log::info!("GMRES({restart}) iteration: {iter}, residual: {res:.4E}");
+    log::info!("GMRES({restart}) converged iteration: {iter}, residual: {res:.4E}");
 
     Ok(x)
 }

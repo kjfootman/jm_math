@@ -5,7 +5,7 @@ use std::error::Error;
 pub fn get_matrix(case: usize) -> Result<Matrix, Box<dyn Error>> {
     match case {
         0 => {
-            // 4 x 4 test matrix
+            // 4 x 4 test matrix to develop solvers
             Matrix::from_rows([
                 [1.0, 0.0, 2.0, 3.0],
                 [4.0, 5.0, 0.0, 6.0],

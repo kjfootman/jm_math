@@ -377,7 +377,13 @@ macro_rules! impl_dot {
 
                     // dimension check
                     if self.dim() != rhs.len() {
-                        let err_msg = "The dimensions of the two vectors for dot_product are not equal.";
+                        // let err_msg = "The dimensions of the two vectors for dot_product are not equal.";
+                        let err_msg = format!(
+                            "The dimensions of the two vectors for dot_product are not equal. \
+                            left: {} right: {}",
+                            self.dim(),
+                            rhs.len()
+                        );
                         log::error!("{err_msg}");
                         panic!();
                     }

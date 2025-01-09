@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
+use jm_math::linear_algebra::{MSolver, Matrix, PreconType, Vector};
 use std::error::Error;
-use jm_math::linear_algebra::{MSolver, Matrix, Vector, PreconType};
 
-fn main() -> Result<(), Box<dyn Error>>{
+fn main() -> Result<(), Box<dyn Error>> {
     log4rs::init_file("log4rs.yaml", Default::default())?;
 
     // coefficient matrix

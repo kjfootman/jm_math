@@ -3,7 +3,8 @@ use crate::linear_algebra::msolver::{preconditioner as pc, MSolver};
 use crate::linear_algebra::Vector;
 use crate::JmError;
 use rayon::iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator,
+    IntoParallelRefMutIterator, ParallelIterator,
 };
 use std::error::Error;
 
@@ -18,6 +19,7 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
     let tol = ms.tol;
     let mut restart = restart;
     let mut x = Vector::from_iter(vec![0f64; b.len()]);
+    let mut sigma;
 
     // set preconditioner
     let P = match ms.preconditioner {
@@ -50,18 +52,30 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
                 h[i] = *value;
             });
 
-            h[j] += (j..n)
-                // todo: parallelization needed. sigma = 2 * U_T * v
-                .into_par_iter()
-                .map(|i| -2.0 * U[j][0] * U[j][i - j] * z[i])
-                .sum::<f64>();
+            //----------------------------//
+            // h[j] += (j..n)
+            //     // todo: parallelization needed. sigma = 2 * U_T * v
+            //     .into_par_iter()
+            //     .map(|i| -2.0 * U[j][0] * U[j][i - j] * z[i])
+            //     .sum::<f64>();
+            sigma = -2.0
+                * U[j]
+                    .par_iter()
+                    .enumerate()
+                    .map(|(i, u)| u * z[i + j])
+                    .sum::<f64>();
+            h[j] += match (sigma * &U[j]).first() {
+                Some(value) => *value,
+                None => 0.0,
+            };
+            //----------------------------//
 
             if j != 0 {
                 H.push(h);
 
                 // lucky breakdown
                 if H[j - 1][j].abs() < tol {
-                    println!("HGMRES({restart}) lucky breakdown");
+                    log::info!("HGMRES({restart}) lucky breakdown");
                     restart = j;
                     break;
                 }
@@ -72,7 +86,7 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
             z[j] = 1f64;
 
             for (i, u) in U.iter().enumerate().take(j + 1).rev() {
-                let sigma = (i..n)
+                sigma = (i..n)
                     .into_par_iter()
                     .map(|k| -2f64 * u[k - i] * z[k])
                     .sum::<f64>();
@@ -91,13 +105,12 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
             };
 
             for (i, u) in U.iter().enumerate().take(j + 1) {
-                let sigma = (i..n)
+                sigma = (i..n)
                     .into_par_iter()
                     .map(|k| -2f64 * u[k - i] * z[k])
                     .sum::<f64>();
 
                 z[i..n]
-                    // .iter_mut()
                     .par_iter_mut()
                     .enumerate()
                     .for_each(|(k, value)| *value += sigma * U[i][k]);
@@ -114,14 +127,13 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
 
         for (i, u) in U.iter().enumerate().take(restart).rev() {
             z[i] += y[i];
-            let sigma = (i..n)
+            sigma = (i..n)
                 .into_par_iter()
                 .map(|k| -2f64 * u[k - i] * z[k])
                 .sum::<f64>();
 
             z[i..n]
                 .par_iter_mut()
-                // .iter_mut()
                 .enumerate()
                 .for_each(|(k, value)| *value += sigma * U[i][k]);
         }
@@ -147,7 +159,7 @@ pub fn solve(restart: usize, ms: &MSolver) -> Result<Vector, Box<dyn Error>> {
         return Err(Box::new(err));
     }
 
-    log::info!("HGMRES({restart}) iteration: {iter}, residual: {res:.4E}");
+    log::info!("HGMRES({restart}) converged iteration: {iter}, residual: {res:.4E}");
 
     Ok(x)
 }
