@@ -547,12 +547,12 @@ impl Matrix {
         q.par_sort_by(|i, j| depth[*i].cmp(&depth[*j]));
 
         // set a array of level
-        //? parallelization needed?
         let chunk_sizes = q
             .par_chunk_by(|i, j| depth[*i] == depth[*j])
             .map(|chunk| chunk.len())
             .collect::<Vec<_>>();
 
+        //? parallelization needed?
         let level = std::iter::once(0)
             .chain(chunk_sizes.iter().scan(0, |acc, &size| {
                 *acc += size;

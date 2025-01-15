@@ -7,8 +7,22 @@
 //! for matrix and vector arithmetic.
 //! And the `MSolver` struct is used to compute solutions for systems of equations.
 //!
+//! **Examples**
+//!
+//! The following examples are for vector arithmetic.
+//!
 //! ```rust
-#![doc = include_str!("../examples/linear_algebra.rs")]
+#![doc = include_str!("../examples/vector_example.rs")]
+//! ```
+//!
+//! **Examples**
+//! ```rust
+#![doc = include_str!("../examples/matrix_example.rs")]
+//! ```
+//!
+//! **Examples**
+//! ```rust
+#![doc = include_str!("../examples/msolver_example.rs")]
 //! ```
 
 mod matrix;
