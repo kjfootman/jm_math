@@ -1,7 +1,7 @@
 use super::simd;
 use log::error;
 use rayon::prelude::*;
-use std::ops::{Add, Deref, DerefMut, Index, IndexMut, Mul, Range, Sub};
+use std::ops::{Add, AddAssign, Deref, DerefMut, Index, IndexMut, Mul, Neg, Range, Sub, SubAssign};
 
 #[derive(Debug)]
 pub struct Vector {
@@ -56,7 +56,16 @@ impl Vector {
             .for_each(|v| arch.dispatch(simd::VectorMul(v, rhs)));
     }
 
-    fn dot(&self, rhs: &[f64]) -> f64 {
+    fn neg_assign(&mut self) {
+        let len = self.len();
+        let arch = simd::arch();
+        let chunk_size = simd::calculate_chunk_size(len);
+
+        self.par_chunks_mut(chunk_size)
+            .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
+    }
+
+    fn dot_product(&self, rhs: &[f64]) -> f64 {
         let len = self.len();
 
         if len != rhs.len() {
@@ -122,6 +131,16 @@ impl From<Vec<f64>> for Vector {
     }
 }
 
+impl Neg for Vector {
+    type Output = Vector;
+
+    fn neg(mut self) -> Self::Output {
+        self.neg_assign();
+
+        self
+    }
+}
+
 macro_rules! impl_vector_add {
     (Vector, Vector) => {
         impl Add<Vector> for Vector {
@@ -153,6 +172,23 @@ macro_rules! impl_vector_add {
     };
 }
 impl_vector_add!(Vector, Vector);
+
+macro_rules! imple_vector_add_assign {
+    (Vector) => {
+        impl AddAssign<Vector> for Vector {
+            fn add_assign(&mut self, rhs: Vector) {
+                self.add_assign(&rhs);
+            }
+        }
+
+        impl AddAssign<&Vector> for Vector {
+            fn add_assign(&mut self, rhs: &Vector) {
+                self.add_assign(rhs);
+            }
+        }
+    };
+}
+imple_vector_add_assign!(Vector);
 
 macro_rules! impl_vector_sub {
     (Vector, Vector) => {
@@ -212,7 +248,7 @@ macro_rules! impl_vector_mul {
             type Output = f64;
 
             fn mul(self, rhs: Vector) -> Self::Output {
-                self.dot(&rhs)
+                self.dot_product(&rhs)
             }
         }
 
@@ -220,7 +256,7 @@ macro_rules! impl_vector_mul {
             type Output = f64;
 
             fn mul(self, rhs: Vector) -> Self::Output {
-                rhs.dot(self)
+                rhs.dot_product(self)
             }
         }
 
@@ -228,7 +264,7 @@ macro_rules! impl_vector_mul {
             type Output = f64;
 
             fn mul(self, rhs: &Vector) -> Self::Output {
-                self.dot(rhs)
+                self.dot_product(rhs)
             }
         }
 
@@ -236,7 +272,7 @@ macro_rules! impl_vector_mul {
             type Output = f64;
 
             fn mul(self, rhs: &Vector) -> Self::Output {
-                self.dot(rhs)
+                self.dot_product(rhs)
             }
         }
     };
@@ -250,15 +286,18 @@ mod tests {
 
     #[test]
     fn vector_test() {
-        let v1 = Vector::from(vec![1.0, 2.0, 3.0]);
+        let mut v1 = Vector::from(vec![1.0, 2.0, 3.0]);
         let v2 = Vector::from(vec![3.0, 2.0, 1.0]);
 
         // let v = v1 - &v2;
         // let v = v1 - v2;
         // let v = 3.0 * v1;
         // let v = v1 * 3.0;
-        let v = &v1 * &v2;
-        println!("{v:#?}");
+        // let v = &v1 * &v2;
+        // let v = -v1;
+        // v1 += &v2;
+        v1 += v2;
+        println!("{v1:#?}");
     }
 
     // fn test(mut a: f64) -> f64 {

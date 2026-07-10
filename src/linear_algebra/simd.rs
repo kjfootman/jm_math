@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::{Error, Vector};
 use pulp::{Arch, Simd, WithSimd};
 use std::sync::OnceLock;
 
@@ -111,5 +111,18 @@ impl<'a> WithSimd for VectorDot<'a> {
             .sum::<f64>();
 
         result
+    }
+}
+
+pub struct VectorNeg<'a>(pub &'a mut [f64]);
+impl<'a> WithSimd for VectorNeg<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let (head, tail) = S::as_mut_simd_f64s(self.0);
+
+        head.iter_mut().for_each(|v| *v = simd.neg_f64s(*v));
+        tail.iter_mut().for_each(|v| *v = -*v);
     }
 }
