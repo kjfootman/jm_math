@@ -1,4 +1,5 @@
 use super::simd;
+use crate::Error;
 use log::error;
 use rayon::prelude::*;
 use std::ops::{Add, AddAssign, Deref, DerefMut, Index, IndexMut, Mul, Neg, Range, Sub, SubAssign};
@@ -15,24 +16,26 @@ impl Vector {
         }
     }
 
-    pub fn add(&mut self, a: &[f64], b: &[f64]) {
+    pub fn add(&mut self, a: &[f64], b: &[f64]) -> Result<(), Error> {
         let len = self.len();
 
-        if a.len() != b.len() {
-            error!("Cannot add vectors of different dimensions");
-            panic!();
+        if a.len() != b.len() || len != a.len() {
+            let msg = "Cannot add vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
         }
-
-        // todo: len, a.len() 크기 비교
 
         let arch = simd::arch();
         let chunk_size = simd::calculate_chunk_size(len);
 
         self.par_chunks_mut(chunk_size)
-            .zip(a.par_chunks(chunk_size).zip(b.par_chunks(chunk_size)))
-            .for_each(|(out, (a, b))| {
+            .zip(a.par_chunks(chunk_size))
+            .zip(b.par_chunks(chunk_size))
+            .for_each(|((out, a), b)| {
                 arch.dispatch(simd::VectorAdd(out, a, b));
             });
+
+        Ok(())
     }
 
     pub fn add_assign(&mut self, vec: &[f64]) {
@@ -49,50 +52,49 @@ impl Vector {
         self.par_chunks_mut(chunk_size)
             .zip(vec.par_chunks(chunk_size))
             .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorAddAsign(out, vec));
+                arch.dispatch(simd::VectorAddAssign(out, vec));
             });
     }
 
-    // fn add_assign(&mut self, rhs: &[f64]) {
-    //     let len = self.len();
+    pub fn sub(&mut self, a: &[f64], b: &[f64]) -> Result<(), Error> {
+        let len = self.len();
 
-    //     if len != rhs.len() {
-    //         error!("Cannot add vectors of different dimensions");
-    //         panic!();
-    //     }
+        if a.len() != b.len() || len != a.len() {
+            let msg = "Cannot subtract vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
+        }
 
-    //     let arch = simd::arch();
-    //     let chunk_size = simd::calculate_chunk_size(len);
+        let arch = simd::arch();
+        let chunk_size = simd::calculate_chunk_size(len);
 
-    //     self.par_chunks_mut(chunk_size)
-    //         .zip(rhs.par_chunks(chunk_size))
-    //         .for_each(|(lhs, rhs)| arch.dispatch(simd::VectorAdd(lhs, rhs)));
-    // }
+        self.par_chunks_mut(chunk_size)
+            .zip(a.par_chunks(chunk_size))
+            .zip(b.par_chunks(chunk_size))
+            .for_each(|((out, a), b)| {
+                arch.dispatch(simd::VectorSub(out, a, b));
+            });
 
-    // fn sub_assign(&mut self, rhs: &[f64]) {
-    //     let len = self.len();
+        Ok(())
+    }
 
-    //     if len != rhs.len() {
-    //         error!("Cannot subtract vectors of different dimensions");
-    //         panic!();
-    //     }
+    pub fn sub_assign(&mut self, vec: &[f64]) {
+        let len = self.len();
 
-    //     let arch = simd::arch();
-    //     let chunk_size = simd::calculate_chunk_size(len);
+        if len != vec.len() {
+            error!("Cannot subtract vectors of different dimensions");
+            panic!();
+        }
 
-    //     self.par_chunks_mut(chunk_size)
-    //         .zip(rhs.par_chunks(chunk_size))
-    //         .for_each(|(lhs, rhs)| arch.dispatch(simd::VectorSub(lhs, rhs)));
-    // }
+        let arch = simd::arch();
+        let chunk_size = simd::calculate_chunk_size(len);
 
-    // fn mul_assign(&mut self, rhs: f64) {
-    //     let len = self.len();
-    //     let arch = simd::arch();
-    //     let chunk_size = simd::calculate_chunk_size(len);
-
-    //     self.par_chunks_mut(chunk_size)
-    //         .for_each(|v| arch.dispatch(simd::VectorMul(v, rhs)));
-    // }
+        self.par_chunks_mut(chunk_size)
+            .zip(vec.par_chunks(chunk_size))
+            .for_each(|(out, vec)| {
+                arch.dispatch(simd::VectorSubAssign(out, vec));
+            });
+    }
 
     fn neg_assign(&mut self) {
         let len = self.len();
@@ -333,20 +335,46 @@ impl Neg for Vector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    const N: usize = 2_500;
 
     #[test]
-    fn vector_add_test() {
-        let v1 = Vector::from(vec![1.0, 2.0, 3.0]);
-        let v2 = Vector::from(vec![3.0, 2.0, 1.0]);
-        let v3 = Vector::from(vec![1.0, 1.0, 1.0]);
-        let mut v = Vector::new(3);
+    /// Unit test for `Vector` addition.
+    fn vector_add_test() -> Result<(), Error> {
+        let v1 = Vector::from(vec![1.0; N]);
+        let v2 = Vector::from(vec![2.0; N]);
+        let v3 = Vector::from(vec![-1.0; N]);
+        let mut v = Vector::new(N);
 
-        v.add(&v1, &v2); // [4.0, 4.0, 4.0]
+        // v1 + v2 -> [3.0; N]
+        v.add(&v1, &v2)?;
 
+        // [3.0; N]에 v3([-1.0; N]) 3회 누적 덧셈
         for _ in 0..3 {
-            v.add_assign(&v3); // [7.0, 7.0, 7.0]
+            v.add_assign(&v3);
         }
 
-        assert_eq!(v, Vector::from(vec![7.0, 7.0, 7.0]));
+        assert_eq!(v, Vector::from(vec![0.0; N]));
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_sub_test() -> Result<(), Error> {
+        let v1 = Vector::from(vec![-1.0; N]);
+        let v2 = Vector::from(vec![2.0; N]);
+        let v3 = Vector::from(vec![-1.0; N]);
+        let mut v = Vector::new(N);
+
+        // v1 - v2 -> [-3.0; N]
+        v.sub(&v1, &v2)?;
+
+        // [-3.0; N]에 v3([-1.0; N]) 3회 누적 뺄셈
+        for _ in 0..3 {
+            v.sub_assign(&v3);
+        }
+
+        assert_eq!(v, Vector::from(vec![0.0; N]));
+
+        Ok(())
     }
 }

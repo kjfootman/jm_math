@@ -26,8 +26,9 @@ impl<'a> WithSimd for VectorAdd<'a> {
 
         out_head
             .iter_mut()
-            .zip(a_head.iter().zip(b_head.iter()))
-            .for_each(|(out, (a, b))| {
+            .zip(a_head.iter())
+            .zip(b_head.iter())
+            .for_each(|((out, a), b)| {
                 *out = simd.add_f64s(*a, *b);
             });
 
@@ -35,13 +36,13 @@ impl<'a> WithSimd for VectorAdd<'a> {
             .iter_mut()
             .zip(a_tail.iter().zip(b_tail.iter()))
             .for_each(|(out, (a, b))| {
-                *out = *a + *b;
+                *out = a + b;
             });
     }
 }
 
-pub struct VectorAddAsign<'a>(pub &'a mut [f64], pub &'a [f64]);
-impl<'a> WithSimd for VectorAddAsign<'a> {
+pub struct VectorAddAssign<'a>(pub &'a mut [f64], pub &'a [f64]);
+impl<'a> WithSimd for VectorAddAssign<'a> {
     type Output = ();
 
     #[inline(always)]
@@ -57,45 +58,94 @@ impl<'a> WithSimd for VectorAddAsign<'a> {
         out_tail
             .iter_mut()
             .zip(vec_tail.iter())
-            .for_each(|(a, b)| *a += *b);
+            .for_each(|(a, b)| *a += b);
     }
 }
 
-pub struct VectorSub<'a>(pub &'a mut [f64], pub &'a [f64]);
+pub struct VectorSub<'a>(pub &'a mut [f64], pub &'a [f64], pub &'a [f64]);
 impl<'a> WithSimd for VectorSub<'a> {
     type Output = ();
 
     #[inline(always)]
     fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
-        let (head0, tail0) = S::as_mut_simd_f64s(self.0);
-        let (head1, tail1) = S::as_simd_f64s(self.1);
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.0);
+        let (a_head, a_tail) = S::as_simd_f64s(self.1);
+        let (b_head, b_tail) = S::as_simd_f64s(self.2);
 
-        head0
+        out_head
             .iter_mut()
-            .zip(head1.iter())
-            .for_each(|(v1, v2)| *v1 = simd.sub_f64s(*v1, *v2));
+            .zip(a_head.iter())
+            .zip(b_head.iter())
+            .for_each(|((out, a), b)| {
+                *out = simd.sub_f64s(*a, *b);
+            });
 
-        tail0
+        out_tail
             .iter_mut()
-            .zip(tail1.iter())
-            .for_each(|(v1, v2)| *v1 -= v2);
+            .zip(a_tail.iter().zip(b_tail.iter()))
+            .for_each(|(out, (a, b))| {
+                *out = a - b;
+            });
     }
 }
 
-pub struct VectorMul<'a>(pub &'a mut [f64], pub f64);
-impl<'a> WithSimd for VectorMul<'a> {
+pub struct VectorSubAssign<'a>(pub &'a mut [f64], pub &'a [f64]);
+impl<'a> WithSimd for VectorSubAssign<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.0);
+        let (vec_head, vec_tail) = S::as_simd_f64s(self.1);
+
+        out_head
+            .iter_mut()
+            .zip(vec_head.iter())
+            .for_each(|(a, b)| *a = simd.sub_f64s(*a, *b));
+
+        out_tail
+            .iter_mut()
+            .zip(vec_tail.iter())
+            .for_each(|(a, b)| *a -= b);
+    }
+}
+
+pub struct VectorScale<'a>(pub &'a mut [f64], pub f64, pub &'a [f64]);
+impl<'a> WithSimd for VectorScale<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.0);
+        let scale = self.1;
+        let (vec_head, vec_tail) = S::as_simd_f64s(self.2);
+        let scale_simd = simd.splat_f64s(self.1);
+
+        out_head.iter_mut().zip(vec_head.iter()).for_each(|(a, b)| {
+            *a = simd.mul_f64s(scale_simd, *b);
+        });
+
+        out_tail
+            .iter_mut()
+            .zip(vec_tail.iter())
+            .for_each(|(a, b)| *a = scale * b);
+    }
+}
+
+pub struct VectorScaleAssign<'a>(pub &'a mut [f64], pub f64);
+impl<'a> WithSimd for VectorScaleAssign<'a> {
     type Output = ();
 
     #[inline(always)]
     fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
         let (head, tail) = S::as_mut_simd_f64s(self.0);
-        let scalar = self.1;
-        let scalar_simd = simd.splat_f64s(scalar);
+        let scale = self.1;
+        let scale_simd = simd.splat_f64s(scale);
 
         head.iter_mut()
-            .for_each(|v| *v = simd.mul_f64s(scalar_simd, *v));
+            .for_each(|v| *v = simd.mul_f64s(scale_simd, *v));
 
-        tail.iter_mut().for_each(|v| *v *= scalar);
+        tail.iter_mut().for_each(|v| *v *= scale);
     }
 }
 

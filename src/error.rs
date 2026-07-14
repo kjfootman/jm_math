@@ -1,4 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum Error {}
+pub enum Error {
+    #[error("dimension mismatched.\n{0}")]
+    DimensionMismatch(String),
+}
