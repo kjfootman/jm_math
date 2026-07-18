@@ -96,7 +96,43 @@ impl Vector {
             });
     }
 
-    fn neg_assign(&mut self) {
+    pub fn scale(&mut self, scale: f64, vec: &[f64]) {
+        let len = self.len();
+
+        let arch = simd::arch();
+        let chunk_size = simd::calculate_chunk_size(len);
+
+        self.par_chunks_mut(chunk_size)
+            .zip(vec.par_chunks(chunk_size))
+            .for_each(|(out, vec)| {
+                arch.dispatch(simd::VectorScale(out, scale, vec));
+            });
+    }
+
+    pub fn scale_assign(&mut self, scale: f64) {
+        let len = self.len();
+
+        let arch = simd::arch();
+        let chunk_size = simd::calculate_chunk_size(len);
+
+        self.par_chunks_mut(chunk_size).for_each(|out| {
+            arch.dispatch(simd::VectorScaleAssign(out, scale));
+        });
+    }
+
+    pub fn dot(&self, vec: &[f64]) -> f64 {
+        let len = self.len();
+
+        let arch = simd::arch();
+        let chunk_size = simd::calculate_chunk_size(len);
+
+        self.par_chunks(chunk_size)
+            .zip(vec.par_chunks(chunk_size))
+            .map(|(a, b)| arch.dispatch(simd::VectorDot(a, b)))
+            .sum::<f64>()
+    }
+
+    pub fn neg_assign(&mut self) {
         let len = self.len();
         let arch = simd::arch();
         let chunk_size = simd::calculate_chunk_size(len);
@@ -104,36 +140,7 @@ impl Vector {
         self.par_chunks_mut(chunk_size)
             .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
     }
-
-    // fn dot_product(&self, rhs: &[f64]) -> f64 {
-    //     let len = self.len();
-
-    //     if len != rhs.len() {
-    //         error!("Cannot multiply vectors of different dimensions");
-    //         panic!();
-    //     }
-
-    //     let arch = simd::arch();
-    //     let chunk_size = simd::calculate_chunk_size(len);
-
-    //     self.par_chunks(chunk_size)
-    //         .zip(rhs.par_chunks(chunk_size))
-    //         .map(|(lhs, rhs)| arch.dispatch(simd::VectorDot(lhs, rhs)))
-    //         .sum::<f64>()
-    // }
 }
-
-// impl AsRef<[f64]> for Vector {
-//     fn as_ref(&self) -> &[f64] {
-//         &self.values
-//     }
-// }
-
-// impl AsMut<[f64]> for Vector {
-//     fn as_mut(&mut self) -> &mut [f64] {
-//         &mut self.values
-//     }
-// }
 
 impl Deref for Vector {
     type Target = Vec<f64>;
@@ -193,145 +200,6 @@ impl Neg for Vector {
     }
 }
 
-// macro_rules! impl_vector_add {
-//     (Vector, Vector) => {
-//         impl Add<Vector> for Vector {
-//             type Output = Vector;
-
-//             fn add(mut self, rhs: Vector) -> Self::Output {
-//                 self.add_assign(&rhs);
-//                 self
-//             }
-//         }
-
-//         impl Add<&Vector> for Vector {
-//             type Output = Vector;
-
-//             fn add(mut self, rhs: &Vector) -> Self::Output {
-//                 self.add_assign(rhs);
-//                 self
-//             }
-//         }
-
-//         impl Add<Vector> for &Vector {
-//             type Output = Vector;
-
-//             fn add(self, mut rhs: Vector) -> Self::Output {
-//                 rhs.add_assign(self);
-//                 rhs
-//             }
-//         }
-//     };
-// }
-// impl_vector_add!(Vector, Vector);
-
-// macro_rules! imple_vector_add_assign {
-//     (Vector) => {
-//         impl AddAssign<Vector> for Vector {
-//             fn add_assign(&mut self, rhs: Vector) {
-//                 self.add_assign(&rhs);
-//             }
-//         }
-
-//         impl AddAssign<&Vector> for Vector {
-//             fn add_assign(&mut self, rhs: &Vector) {
-//                 self.add_assign(rhs);
-//             }
-//         }
-//     };
-// }
-// imple_vector_add_assign!(Vector);
-
-// macro_rules! impl_vector_sub {
-//     (Vector, Vector) => {
-//         impl Sub<Vector> for Vector {
-//             type Output = Vector;
-
-//             fn sub(mut self, rhs: Vector) -> Self::Output {
-//                 self.sub_assign(&rhs);
-//                 self
-//             }
-//         }
-
-//         impl Sub<&Vector> for Vector {
-//             type Output = Vector;
-
-//             fn sub(mut self, rhs: &Vector) -> Self::Output {
-//                 self.sub_assign(rhs);
-//                 self
-//             }
-//         }
-
-//         impl Sub<Vector> for &Vector {
-//             type Output = Vector;
-
-//             fn sub(self, mut rhs: Vector) -> Self::Output {
-//                 rhs.sub_assign(self);
-//                 rhs
-//             }
-//         }
-//     };
-// }
-// impl_vector_sub!(Vector, Vector);
-
-// macro_rules! impl_vector_mul {
-//     (f64, Vector) => {
-//         impl Mul<Vector> for f64 {
-//             type Output = Vector;
-
-//             fn mul(self, mut rhs: Vector) -> Self::Output {
-//                 rhs.mul_assign(self);
-//                 rhs
-//             }
-//         }
-
-//         impl Mul<f64> for Vector {
-//             type Output = Vector;
-
-//             fn mul(mut self, rhs: f64) -> Self::Output {
-//                 self.mul_assign(rhs);
-//                 self
-//             }
-//         }
-//     };
-
-//     (Vector, Vector) => {
-//         impl Mul<Vector> for Vector {
-//             type Output = f64;
-
-//             fn mul(self, rhs: Vector) -> Self::Output {
-//                 self.dot_product(&rhs)
-//             }
-//         }
-
-//         impl Mul<Vector> for &Vector {
-//             type Output = f64;
-
-//             fn mul(self, rhs: Vector) -> Self::Output {
-//                 rhs.dot_product(self)
-//             }
-//         }
-
-//         impl Mul<&Vector> for Vector {
-//             type Output = f64;
-
-//             fn mul(self, rhs: &Vector) -> Self::Output {
-//                 self.dot_product(rhs)
-//             }
-//         }
-
-//         impl Mul<&Vector> for &Vector {
-//             type Output = f64;
-
-//             fn mul(self, rhs: &Vector) -> Self::Output {
-//                 self.dot_product(rhs)
-//             }
-//         }
-//     };
-// }
-// impl_vector_mul!(f64, Vector);
-// impl_vector_mul!(Vector, Vector);
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -374,6 +242,45 @@ mod tests {
         }
 
         assert_eq!(v, Vector::from(vec![0.0; N]));
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_scale_test() -> Result<(), Error> {
+        let scale = 2.0;
+        let v1 = Vector::from(vec![1.0; N]);
+        let mut v = Vector::new(N);
+
+        // 2.0 * v1 -> [2.0; N]
+        v.scale(scale, &v1);
+
+        // [2.0; N]에 2.0 누적 곱셈
+        for _ in 0..3 {
+            v.scale_assign(2.0);
+        }
+
+        assert_eq!(v, Vector::from(vec![16.0; N]));
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_dot_test() -> Result<(), Error> {
+        let v1 = Vector::from(vec![1.0; N]);
+        let v2 = Vector::from(vec![1.0; N]);
+
+        assert_eq!(N as f64, v1.dot(&v2));
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_neg_test() -> Result<(), Error> {
+        let mut v = Vector::from(vec![-1.0; N]);
+        v.neg_assign();
+
+        assert_eq!(N as f64, v.iter().sum::<f64>());
 
         Ok(())
     }

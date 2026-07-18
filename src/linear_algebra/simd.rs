@@ -155,21 +155,21 @@ impl<'a> WithSimd for VectorDot<'a> {
 
     #[inline(always)]
     fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
-        let (head0, tail0) = S::as_simd_f64s(self.0);
-        let (head1, tail1) = S::as_simd_f64s(self.1);
+        let (a_head, a_tail) = S::as_simd_f64s(self.0);
+        let (b_head, b_tail) = S::as_simd_f64s(self.1);
         let mut c = simd.splat_f64s(0.0);
 
         // a * b 결과를 acc 에 누적 : c = a * b + c
-        head0
+        a_head
             .iter()
-            .zip(head1.iter())
+            .zip(b_head.iter())
             .for_each(|(a, b)| c = simd.mul_add_f64s(*a, *b, c));
 
         let mut result = simd.reduce_sum_f64s(c);
 
-        result += tail0
+        result += a_tail
             .iter()
-            .zip(tail1.iter())
+            .zip(b_tail.iter())
             .map(|(a, b)| a * b)
             .sum::<f64>();
 
