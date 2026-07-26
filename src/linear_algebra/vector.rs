@@ -330,12 +330,27 @@ mod tests {
         let values = vec![
             1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
         ];
+
+        // 행렬의 각 행 요소 합
+        let row_sum_vec: Vec<f64> = row_ptr
+            .windows(2)
+            .map(|range| values[range[0]..range[1]].iter().sum())
+            .collect();
+        let row_sum_vec = Vector::from(row_sum_vec);
+
+        // CSRMatrix 생성 및 1.0 벡터와 곱
+        // 1.0   0.0   0.0   2.0   0.0   |   1.0
+        // 3.0   4.0   0.0   5.0   0.0   |   1.0
+        // 6.0   0.0   7.0   8.0   9.0   |   1.0
+        // 0.0   0.0  10.0  11.0   0.0   |   1.0
+        // 0.0   0.0   0.0   0.0  12.0   |   1.0
         let matrix = CSRMatrix::new(rows, cols, row_ptr, col_indices, values);
         let vec = Vector::from(vec![1.0; cols]);
         let mut result = Vector::new(cols);
 
         result.csr_spmxv(&matrix, &vec);
 
-        println!("{result:#?}");
+        // 결과 비교
+        assert_eq!(result, row_sum_vec);
     }
 }
