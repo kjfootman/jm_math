@@ -1,4 +1,3 @@
-use crate::{Error, Vector};
 use pulp::{Arch, Simd, WithSimd};
 use std::sync::OnceLock;
 

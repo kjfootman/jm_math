@@ -1,8 +1,8 @@
 use super::simd;
-use crate::Error;
+use crate::{Error, linear_algebra::CSRMatrix};
 use log::error;
 use rayon::prelude::*;
-use std::ops::{Add, AddAssign, Deref, DerefMut, Index, IndexMut, Mul, Neg, Range, Sub, SubAssign};
+use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
 
 #[derive(Debug, PartialEq)]
 pub struct Vector {
@@ -10,6 +10,8 @@ pub struct Vector {
 }
 
 impl Vector {
+    // Returns the zero vector of size `size`.
+    // - size: the length of vector
     pub fn new(size: usize) -> Self {
         Self {
             values: vec![0.0; size],
@@ -132,6 +134,22 @@ impl Vector {
             .sum::<f64>()
     }
 
+    pub fn csr_spmxv(&mut self, matrix: &CSRMatrix, vec: &Vector) {
+        let ia = matrix.row_ptr();
+        let ja = matrix.col_indices();
+        let aa = matrix.values();
+
+        self.par_iter_mut().enumerate().for_each(|(i, v)| {
+            let start = ia[i];
+            let end = ia[i + 1];
+
+            *v = (start..end)
+                .into_iter()
+                .map(|j| aa[j] * vec[ja[j]])
+                .sum::<f64>();
+        });
+    }
+
     pub fn neg_assign(&mut self) {
         let len = self.len();
         let arch = simd::arch();
@@ -139,6 +157,10 @@ impl Vector {
 
         self.par_chunks_mut(chunk_size)
             .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
+    }
+
+    pub fn magnitude(&self) -> f64 {
+        self.dot(self).sqrt()
     }
 }
 
@@ -282,6 +304,38 @@ mod tests {
 
         assert_eq!(N as f64, v.iter().sum::<f64>());
 
+        for _ in 0..3 {
+            v.neg_assign();
+        }
+
+        assert_eq!(N as f64, -v.iter().sum::<f64>());
+
         Ok(())
+    }
+
+    #[test]
+    fn vector_magnitude_test() -> Result<(), Error> {
+        let v = Vector::from(vec![1.0; N]);
+
+        assert_eq!(v.magnitude(), 50.0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_csr_spmxv_test() {
+        let (rows, cols) = (5, 5);
+        let row_ptr = vec![0, 2, 5, 9, 11, 12];
+        let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
+        let values = vec![
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+        ];
+        let matrix = CSRMatrix::new(rows, cols, row_ptr, col_indices, values);
+        let vec = Vector::from(vec![1.0; cols]);
+        let mut result = Vector::new(cols);
+
+        result.csr_spmxv(&matrix, &vec);
+
+        println!("{result:#?}");
     }
 }
