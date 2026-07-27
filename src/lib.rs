@@ -3,4 +3,5 @@ mod error;
 mod linear_algebra;
 
 pub use error::Error;
-pub use linear_algebra::Vector;
+pub use linear_algebra::msolver;
+pub use linear_algebra::{CSRMatrix, Vector};

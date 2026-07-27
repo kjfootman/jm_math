@@ -1,4 +1,5 @@
 mod matrix;
+pub mod msolver;
 mod simd;
 mod vector;
 
