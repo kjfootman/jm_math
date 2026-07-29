@@ -1,11 +1,12 @@
 use crate::msolver::{CSRMatrix, MSolver, Vector};
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct GaussSeidel {
-    residual: f64,
+    residual: RefCell<f64>,
     tolerance: f64,
     iter_max: u32,
-    iter: u32,
+    iter: RefCell<u32>,
 }
 
 pub struct GaussSeidelBuilder {
@@ -13,13 +14,23 @@ pub struct GaussSeidelBuilder {
     iter_max: Option<u32>,
 }
 
+impl GaussSeidel {
+    pub fn iter(&self) -> u32 {
+        self.iter.take()
+    }
+
+    pub fn residual(&self) -> f64 {
+        self.residual.take()
+    }
+}
+
 impl Default for GaussSeidel {
     fn default() -> Self {
         GaussSeidel {
-            residual: f64::MAX,
+            residual: RefCell::new(f64::MAX),
             tolerance: 1E-7,
             iter_max: 500,
-            iter: 0,
+            iter: RefCell::new(0),
         }
     }
 }
@@ -52,7 +63,13 @@ impl GaussSeidelBuilder {
 }
 
 impl MSolver for GaussSeidel {
-    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector) {}
+    fn solve(&self, matrix: &CSRMatrix, b: &Vector) {
+        let mut iter = self.iter.borrow_mut();
+
+        for _ in 0..10 {
+            *iter += 1;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -68,11 +85,13 @@ mod tests {
         let M = CSRMatrix::new(4, 4, row_ptr, col_indices, values);
         let b = Vector::from(vec![6.0, 15.0, 15.0, 9.0]);
 
-        let mut gs = GaussSeidelBuilder::new()
+        let gs = GaussSeidelBuilder::new()
             .iter_max(50)
             .tolerance(1E-5)
             .build();
 
         gs.solve(&M, &b);
+
+        println!("iter: {}, residual: {:.2E}", gs.iter(), gs.residual());
     }
 }
