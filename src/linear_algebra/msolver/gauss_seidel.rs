@@ -79,10 +79,11 @@ mod tests {
 
     #[test]
     fn gauss_seidel_test() {
+        let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
         let values = vec![1.0, 2.0, 3.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
-        let M = CSRMatrix::new(4, 4, row_ptr, col_indices, values);
+        let M = CSRMatrix::new(rows, cols, row_ptr, col_indices, values);
         let b = Vector::from(vec![6.0, 15.0, 15.0, 9.0]);
 
         let gs = GaussSeidelBuilder::new()
