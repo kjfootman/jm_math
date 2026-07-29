@@ -5,17 +5,17 @@ use std::cell::RefCell;
 pub struct GaussSeidel {
     residual: RefCell<f64>,
     tolerance: f64,
-    iter_max: u32,
-    iter: RefCell<u32>,
+    iter_max: usize,
+    iter: RefCell<usize>,
 }
 
 pub struct GaussSeidelBuilder {
     tolerance: Option<f64>,
-    iter_max: Option<u32>,
+    iter_max: Option<usize>,
 }
 
 impl GaussSeidel {
-    pub fn iter(&self) -> u32 {
+    pub fn iter(&self) -> usize {
         self.iter.take()
     }
 
@@ -48,7 +48,7 @@ impl GaussSeidelBuilder {
         self
     }
 
-    pub fn iter_max(mut self, iter_max: u32) -> Self {
+    pub fn iter_max(mut self, iter_max: usize) -> Self {
         self.iter_max = Some(iter_max);
         self
     }
