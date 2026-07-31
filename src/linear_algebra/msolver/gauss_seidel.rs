@@ -1,4 +1,4 @@
-use crate::msolver::{CSRMatrix, MSolver, Vector};
+use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, MSolver, Vector};
 use std::cell::RefCell;
 
 #[derive(Debug)]
@@ -75,7 +75,6 @@ impl MSolver for GaussSeidel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msolver::MSolver;
 
     #[test]
     fn gauss_seidel_test() {
@@ -83,7 +82,15 @@ mod tests {
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
         let values = vec![1.0, 2.0, 3.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
-        let M = CSRMatrix::new(rows, cols, row_ptr, col_indices, values);
+
+        let M = CSRMatrix::from_args(CSRMatrixArgs {
+            rows,
+            cols,
+            row_ptr,
+            diag_ptr: None,
+            col_indices,
+            values,
+        });
         let b = Vector::from(vec![6.0, 15.0, 15.0, 9.0]);
 
         let gs = GaussSeidelBuilder::new()

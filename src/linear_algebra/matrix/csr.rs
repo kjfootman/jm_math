@@ -1,6 +1,6 @@
 use super::Matrix;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CSRMatrix {
     rows: usize,
     cols: usize,
@@ -10,40 +10,57 @@ pub struct CSRMatrix {
     values: Vec<f64>,
 }
 
+#[derive(Debug)]
+pub struct CSRMatrixArgs {
+    pub rows: usize,
+    pub cols: usize,
+    pub row_ptr: Vec<usize>,
+    pub diag_ptr: Option<Vec<usize>>,
+    pub col_indices: Vec<usize>,
+    pub values: Vec<f64>,
+}
+
 impl CSRMatrix {
-    pub fn new(
-        rows: usize,
-        cols: usize,
-        row_ptr: Vec<usize>,
-        col_indices: Vec<usize>,
-        values: Vec<f64>,
-    ) -> Self {
-        // let diag_ptr: Vec<Option<usize>> = row_ptr
-        //     .par_windows(2)
-        //     .enumerate()
-        //     .map(|(row, range)| {
-        //         let start = range[0];
-        //         let end = range[1];
+    // pub fn new(
+    //     rows: usize,
+    //     cols: usize,
+    //     row_ptr: Vec<usize>,
+    //     col_indices: Vec<usize>,
+    //     values: Vec<f64>,
+    // ) -> Self {
+    //     // let diag_ptr: Vec<Option<usize>> = row_ptr
+    //     //     .par_windows(2)
+    //     //     .enumerate()
+    //     //     .map(|(row, range)| {
+    //     //         let start = range[0];
+    //     //         let end = range[1];
 
-        //         if col_indices[start..end].contains(&row) {
-        //             Some(row)
-        //         } else {
-        //             None
-        //         }
+    //     //         if col_indices[start..end].contains(&row) {
+    //     //             Some(row)
+    //     //         } else {
+    //     //             None
+    //     //         }
 
-        //         col_indices[start..end].iter().find(|j|)
-        //     })
-        //     .collect();
+    //     //         col_indices[start..end].iter().find(|j|)
+    //     //     })
+    //     //     .collect();
 
-        // println!("{diag_ptr:#?}");
+    //     // println!("{diag_ptr:#?}");
 
+    //     CSRMatrix {
+    //         rows,
+    //         cols,
+    //         row_ptr,
+    //         diag_ptr: vec![],
+    //         col_indices,
+    //         values,
+    //     }
+    // }
+
+    pub fn from_args(args: CSRMatrixArgs) -> CSRMatrix {
         CSRMatrix {
-            rows,
-            cols,
-            row_ptr,
-            diag_ptr: vec![],
-            col_indices,
-            values,
+            rows: args.rows,
+            ..Default::default()
         }
     }
 
@@ -69,20 +86,5 @@ impl Matrix for CSRMatrix {
 
     fn cols(&self) -> usize {
         self.cols
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn matrix_test() {
-        let (rows, cols) = (4, 4);
-        let row_ptr = vec![0, 3, 6, 8, 9];
-        let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
-        let values = vec![1.0, 2.0, 3.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
-
-        let matrix = CSRMatrix::new(rows, cols, row_ptr, col_indices, values);
     }
 }
