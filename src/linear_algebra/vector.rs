@@ -3,7 +3,10 @@ use crate::error::Error;
 use crate::linear_algebra::CSRMatrix;
 use log::error;
 use rayon::prelude::*;
-use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
+use std::{
+    ops::{Deref, DerefMut, Index, IndexMut, Neg, Range},
+    sync::Arc,
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Vector {
