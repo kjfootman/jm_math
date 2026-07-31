@@ -1,4 +1,4 @@
-use jm_lib::linear_algebra::Vector;
+use jm_lib::prelude::*;
 
 fn main() {
     let mut v = Vector::new(5);
