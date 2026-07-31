@@ -1,5 +1,6 @@
 use super::simd;
-use crate::{Error, linear_algebra::CSRMatrix};
+use crate::error::Error;
+use crate::linear_algebra::CSRMatrix;
 use log::error;
 use rayon::prelude::*;
 use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
@@ -225,6 +226,7 @@ impl Neg for Vector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::linear_algebra::CSRMatrixArgs;
     const N: usize = 2_500;
 
     #[test]
@@ -344,7 +346,14 @@ mod tests {
         // 6.0   0.0   7.0   8.0   9.0   |   1.0
         // 0.0   0.0  10.0  11.0   0.0   |   1.0
         // 0.0   0.0   0.0   0.0  12.0   |   1.0
-        let matrix = CSRMatrix::new(rows, cols, row_ptr, col_indices, values);
+        let matrix = CSRMatrix::from_args(CSRMatrixArgs {
+            rows,
+            cols,
+            row_ptr,
+            diag_ptr: None,
+            col_indices,
+            values,
+        });
         let vec = Vector::from(vec![1.0; cols]);
         let mut result = Vector::new(cols);
 

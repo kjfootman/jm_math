@@ -1,7 +1,8 @@
 mod matrix;
-pub mod msolver;
+mod msolver;
 mod simd;
 mod vector;
 
-pub use matrix::CSRMatrix;
+pub use matrix::{CSRMatrix, CSRMatrixArgs};
+pub use msolver::{GaussSeidel, MSolver};
 pub use vector::Vector;
