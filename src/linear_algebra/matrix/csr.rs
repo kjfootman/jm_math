@@ -21,46 +21,17 @@ pub struct CSRMatrixArgs {
 }
 
 impl CSRMatrix {
-    // pub fn new(
-    //     rows: usize,
-    //     cols: usize,
-    //     row_ptr: Vec<usize>,
-    //     col_indices: Vec<usize>,
-    //     values: Vec<f64>,
-    // ) -> Self {
-    //     // let diag_ptr: Vec<Option<usize>> = row_ptr
-    //     //     .par_windows(2)
-    //     //     .enumerate()
-    //     //     .map(|(row, range)| {
-    //     //         let start = range[0];
-    //     //         let end = range[1];
-
-    //     //         if col_indices[start..end].contains(&row) {
-    //     //             Some(row)
-    //     //         } else {
-    //     //             None
-    //     //         }
-
-    //     //         col_indices[start..end].iter().find(|j|)
-    //     //     })
-    //     //     .collect();
-
-    //     // println!("{diag_ptr:#?}");
-
-    //     CSRMatrix {
-    //         rows,
-    //         cols,
-    //         row_ptr,
-    //         diag_ptr: vec![],
-    //         col_indices,
-    //         values,
-    //     }
-    // }
-
     pub fn from_args(args: CSRMatrixArgs) -> CSRMatrix {
+        // todo: 대각 성분 포인터 찾기
+        let diag_ptr = args.diag_ptr.unwrap_or_default();
+
         CSRMatrix {
             rows: args.rows,
-            ..Default::default()
+            cols: args.cols,
+            row_ptr: args.row_ptr,
+            diag_ptr,
+            col_indices: args.col_indices,
+            values: args.values,
         }
     }
 
