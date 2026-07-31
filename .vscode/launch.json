@@ -58,7 +58,7 @@
                     "test",
                     "--example=vector_example"
                 ]
-            }
+            },
         }
     ]
 }

@@ -70,16 +70,24 @@ impl MSolver for GaussSeidel {
     fn solve(&self, matrix: &CSRMatrix, b: &Vector) -> Result<(), Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
         let mut iter = self.iter.borrow_mut();
+        let mut residual = self.residual.borrow_mut();
+        let tol = self.tolerance;
+        let iter_max = self.iter_max;
+
+        let b_mag = b.magnitude();
         let mut r = Vector::new(n);
         let mut x = Vector::new(n);
         let mut Ax = Vector::new(n);
 
         // calculate residual vector
-
         Ax.csr_spmxv(matrix, &x);
         r.sub(b, &Ax)?;
 
-        for _ in 0..10 {
+        // relative calculate residual
+        *residual = r.magnitude().abs() / b_mag;
+
+        // main iteration
+        while *residual > tol && *iter < iter_max {
             *iter += 1;
         }
 
@@ -92,7 +100,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn gauss_seidel_test() {
+    fn gauss_seidel_test() -> Result<(), Error> {
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
@@ -113,8 +121,10 @@ mod tests {
             .tolerance(1E-5)
             .build();
 
-        gs.solve(&M, &b);
+        gs.solve(&M, &b)?;
 
         println!("iter: {}, residual: {:.2E}", gs.iter(), gs.residual());
+
+        Ok(())
     }
 }
