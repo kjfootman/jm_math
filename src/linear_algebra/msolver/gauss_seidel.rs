@@ -1,4 +1,7 @@
-use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, MSolver, Vector};
+use crate::{
+    error::Error,
+    linear_algebra::{CSRMatrix, CSRMatrixArgs, MSolver, Vector, matrix::Matrix},
+};
 use std::cell::RefCell;
 
 #[derive(Debug)]
@@ -63,12 +66,24 @@ impl GaussSeidelBuilder {
 }
 
 impl MSolver for GaussSeidel {
-    fn solve(&self, matrix: &CSRMatrix, b: &Vector) {
+    /// Solves the systems of euqations with Gauss-Seidel method.
+    fn solve(&self, matrix: &CSRMatrix, b: &Vector) -> Result<(), Error> {
+        let (m, n) = (matrix.rows(), matrix.cols());
         let mut iter = self.iter.borrow_mut();
+        let mut r = Vector::new(n);
+        let mut x = Vector::new(n);
+        let mut Ax = Vector::new(n);
+
+        // calculate residual vector
+
+        Ax.csr_spmxv(matrix, &x);
+        r.sub(b, &Ax)?;
 
         for _ in 0..10 {
             *iter += 1;
         }
+
+        Ok(())
     }
 }
 
