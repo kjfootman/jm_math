@@ -44,6 +44,7 @@ impl Vector {
         Ok(())
     }
 
+    // todo: Result 타입 반환
     pub fn add_assign(&mut self, vec: &[f64]) {
         let len = self.len();
 
@@ -84,6 +85,7 @@ impl Vector {
         Ok(())
     }
 
+    // todo: Result 타입 반환
     pub fn sub_assign(&mut self, vec: &[f64]) {
         let len = self.len();
 
@@ -126,6 +128,7 @@ impl Vector {
         });
     }
 
+    // todo: Result 타입 반환
     pub fn dot(&self, vec: &[f64]) -> f64 {
         let len = self.len();
 
@@ -138,11 +141,13 @@ impl Vector {
             .sum::<f64>()
     }
 
+    // todo: Result 타입 반환
     pub fn csr_spmxv(&mut self, matrix: &CSRMatrix, vec: &Vector) {
         let ia = matrix.row_ptr();
         let ja = matrix.col_indices();
         let aa = matrix.values();
 
+        // todo: chunk_size로 최적화
         self.par_iter_mut().enumerate().for_each(|(i, v)| {
             let start = ia[i];
             let end = ia[i + 1];
