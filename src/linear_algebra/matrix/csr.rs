@@ -8,7 +8,7 @@ pub struct CSRMatrix {
     rows: usize,
     cols: usize,
     row_ptr: Vec<usize>,
-    diag_ptr: Vec<usize>,
+    diag_ptr: Option<Vec<usize>>,
     col_indices: Vec<usize>,
     values: Vec<f64>,
 }
@@ -26,13 +26,12 @@ pub struct CSRMatrixArgs {
 impl CSRMatrix {
     pub fn from_args(args: CSRMatrixArgs) -> CSRMatrix {
         // todo: 대각 성분 포인터 찾기
-        let diag_ptr = args.diag_ptr.unwrap_or_default();
 
         CSRMatrix {
             rows: args.rows,
             cols: args.cols,
             row_ptr: args.row_ptr,
-            diag_ptr,
+            diag_ptr: args.diag_ptr,
             col_indices: args.col_indices,
             values: args.values,
         }
