@@ -19,7 +19,7 @@ mod tests {
             rows: 4,
             cols: 4,
             row_ptr: vec![0, 3, 6, 8, 9],
-            diag_ptr: None,
+            // diag_ptr: None,
             col_indices: vec![0, 2, 3, 0, 1, 3, 2, 3, 3],
             values: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
         });

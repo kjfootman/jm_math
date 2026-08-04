@@ -1,12 +1,9 @@
 use super::simd;
-use crate::error::Error;
 use crate::linear_algebra::CSRMatrix;
+use crate::{error::Error, linear_algebra::Matrix};
 use log::error;
 use rayon::prelude::*;
-use std::{
-    ops::{Deref, DerefMut, Index, IndexMut, Neg, Range},
-    sync::Arc,
-};
+use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
 
 #[derive(Debug, PartialEq)]
 pub struct Vector {
@@ -44,13 +41,13 @@ impl Vector {
         Ok(())
     }
 
-    // todo: Result 타입 반환
-    pub fn add_assign(&mut self, vec: &[f64]) {
+    pub fn add_assign(&mut self, vec: &[f64]) -> Result<(), Error> {
         let len = self.len();
 
         if len != vec.len() {
-            error!("Cannot add vectors of different dimensions");
-            panic!();
+            let msg = "Cannot add vectors of different dimensions";
+            error!("{msg}");
+            return Err(Error::DimensionMismatch(msg.into()));
         }
 
         let arch = simd::arch();
@@ -61,6 +58,8 @@ impl Vector {
             .for_each(|(out, vec)| {
                 arch.dispatch(simd::VectorAddAssign(out, vec));
             });
+
+        Ok(())
     }
 
     pub fn sub(&mut self, a: &[f64], b: &[f64]) -> Result<(), Error> {
@@ -85,13 +84,13 @@ impl Vector {
         Ok(())
     }
 
-    // todo: Result 타입 반환
-    pub fn sub_assign(&mut self, vec: &[f64]) {
+    pub fn sub_assign(&mut self, vec: &[f64]) -> Result<(), Error> {
         let len = self.len();
 
         if len != vec.len() {
-            error!("Cannot subtract vectors of different dimensions");
-            panic!();
+            let msg = "Cannot subtract vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
         }
 
         let arch = simd::arch();
@@ -102,6 +101,8 @@ impl Vector {
             .for_each(|(out, vec)| {
                 arch.dispatch(simd::VectorSubAssign(out, vec));
             });
+
+        Ok(())
     }
 
     pub fn scale(&mut self, scale: f64, vec: &[f64]) {
@@ -141,11 +142,21 @@ impl Vector {
             .sum::<f64>()
     }
 
-    // todo: Result 타입 반환
-    pub fn csr_spmxv(&mut self, matrix: &CSRMatrix, vec: &Vector) {
+    pub fn csr_spmv(&mut self, matrix: &CSRMatrix, vec: &Vector) -> Result<(), Error> {
+        let (m, n) = (matrix.rows(), matrix.cols());
         let ia = matrix.row_ptr();
         let ja = matrix.col_indices();
         let aa = matrix.values();
+
+        if n != vec.len() {
+            let msg = format!(
+                "Dimension mismatch for SpMV (Columns of matrix: {}, length of vector: {}",
+                n,
+                vec.len()
+            );
+            error!("{msg}");
+            return Err(Error::DimensionMismatch(msg));
+        }
 
         // todo: chunk_size로 최적화
         self.par_iter_mut().enumerate().for_each(|(i, v)| {
@@ -157,6 +168,8 @@ impl Vector {
                 .map(|j| aa[j] * vec[ja[j]])
                 .sum::<f64>();
         });
+
+        Ok(())
     }
 
     pub fn neg_assign(&mut self) {
@@ -250,7 +263,7 @@ mod tests {
 
         // [3.0; N]에 v3([-1.0; N]) 3회 누적 덧셈
         for _ in 0..3 {
-            v.add_assign(&v3);
+            v.add_assign(&v3)?;
         }
 
         assert_eq!(v, Vector::from(vec![0.0; N]));
@@ -270,7 +283,7 @@ mod tests {
 
         // [-3.0; N]에 v3([-1.0; N]) 3회 누적 뺄셈
         for _ in 0..3 {
-            v.sub_assign(&v3);
+            v.sub_assign(&v3)?;
         }
 
         assert_eq!(v, Vector::from(vec![0.0; N]));
@@ -358,14 +371,13 @@ mod tests {
             rows,
             cols,
             row_ptr,
-            diag_ptr: None,
             col_indices,
             values,
         });
         let vec = Vector::from(vec![1.0; cols]);
         let mut result = Vector::new(cols);
 
-        result.csr_spmxv(&matrix, &vec);
+        result.csr_spmv(&matrix, &vec);
 
         // 결과 비교
         assert_eq!(result, row_sum_vec);
