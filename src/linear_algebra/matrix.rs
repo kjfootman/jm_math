@@ -1,4 +1,4 @@
-mod csr;
+pub mod csr;
 mod dense;
 
 pub use csr::{CSRMatrix, CSRMatrixArgs};
