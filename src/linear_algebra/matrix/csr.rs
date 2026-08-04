@@ -7,7 +7,7 @@ pub struct CSRMatrix {
     rows: usize,
     cols: usize,
     row_ptr: Vec<usize>,
-    diag_ptr: Option<Vec<usize>>,
+    // diag_ptr: Option<Vec<usize>>,
     col_indices: Vec<usize>,
     values: Vec<f64>,
 }
@@ -17,7 +17,7 @@ pub struct CSRMatrixArgs {
     pub rows: usize,
     pub cols: usize,
     pub row_ptr: Vec<usize>,
-    pub diag_ptr: Option<Vec<usize>>,
+    // pub diag_ptr: Option<Vec<usize>>,
     pub col_indices: Vec<usize>,
     pub values: Vec<f64>,
 }
@@ -30,7 +30,7 @@ impl CSRMatrix {
             rows: args.rows,
             cols: args.cols,
             row_ptr: args.row_ptr,
-            diag_ptr: args.diag_ptr,
+            // diag_ptr: args.diag_ptr,
             col_indices: args.col_indices,
             values: args.values,
         }
@@ -44,9 +44,9 @@ impl CSRMatrix {
         &self.col_indices
     }
 
-    pub fn diag_ptr(&self) -> Option<&[usize]> {
-        self.diag_ptr.as_deref()
-    }
+    // pub fn diag_ptr(&self) -> Option<&[usize]> {
+    //     self.diag_ptr.as_deref()
+    // }
 
     pub fn values(&self) -> &[f64] {
         &self.values

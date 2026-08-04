@@ -89,7 +89,7 @@ impl MSolver for GaussSeidel {
         let mut r = Vector::new(n);
 
         // calculate residual vector r - Ax
-        Ax.csr_spmxv(matrix, &x);
+        Ax.csr_spmv(matrix, &x)?;
         r.sub(b, &Ax)?;
         // relative calculate residual
         *residual = r.magnitude().abs() / b_mag;
@@ -112,8 +112,8 @@ impl MSolver for GaussSeidel {
                 x[i] /= aa[da[i]];
             }
 
-            // calculate residual vector
-            Ax.csr_spmxv(matrix, &x);
+            // calculate residual vector r - Ax
+            Ax.csr_spmv(matrix, &x)?;
             r.sub(b, &Ax)?;
             // relative calculate residual
             *residual = r.magnitude().abs() / b_mag;
@@ -135,14 +135,14 @@ mod tests {
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
-        let diag_ptr = csr::find_diag_ptr(&row_ptr, &col_indices).ok();
+        // let diag_ptr = csr::find_diag_ptr(&row_ptr, &col_indices).ok();
         let values = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
 
         let M = CSRMatrix::from_args(CSRMatrixArgs {
             rows,
             cols,
             row_ptr,
-            diag_ptr,
+            // diag_ptr,
             col_indices,
             values,
         });
