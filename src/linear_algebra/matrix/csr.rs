@@ -1,7 +1,6 @@
-use rayon::prelude::*;
-
 use super::Matrix;
 use crate::{error::Error, linear_algebra::simd};
+use rayon::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct CSRMatrix {
@@ -43,6 +42,10 @@ impl CSRMatrix {
 
     pub fn col_indices(&self) -> &[usize] {
         &self.col_indices
+    }
+
+    pub fn diag_ptr(&self) -> Option<&[usize]> {
+        self.diag_ptr.as_deref()
     }
 
     pub fn values(&self) -> &[f64] {
