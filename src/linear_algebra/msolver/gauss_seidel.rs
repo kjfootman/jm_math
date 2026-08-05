@@ -74,7 +74,7 @@ impl MSolver for GaussSeidel {
         let tol = self.tolerance;
         let iter_max = self.iter_max;
 
-        let b_mag = b.magnitude();
+        let b_mag = b.magnitude()?;
         let mut Ax = Vector::new(n);
 
         let A = matrix;
@@ -92,7 +92,7 @@ impl MSolver for GaussSeidel {
         Ax.csr_spmv(matrix, &x)?;
         r.sub(b, &Ax)?;
         // relative calculate residual
-        *residual = r.magnitude().abs() / b_mag;
+        *residual = r.magnitude()?.abs() / b_mag;
 
         // main iteration
         while *residual > tol && *iter < iter_max {
@@ -116,7 +116,7 @@ impl MSolver for GaussSeidel {
             Ax.csr_spmv(matrix, &x)?;
             r.sub(b, &Ax)?;
             // relative calculate residual
-            *residual = r.magnitude().abs() / b_mag;
+            *residual = r.magnitude()?.abs() / b_mag;
 
             *iter += 1;
         }
