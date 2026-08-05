@@ -129,17 +129,26 @@ impl Vector {
         });
     }
 
-    // todo: Result 타입 반환
-    pub fn dot(&self, vec: &[f64]) -> f64 {
+    pub fn dot(&self, vec: &[f64]) -> Result<f64, Error> {
         let len = self.len();
+
+        if len != vec.len() {
+            let msg =
+                "Two vectors of different dimensions cannot be multiplied using the dot product.";
+            error!("{msg}");
+            return Err(Error::DimensionMismatch(msg.into()));
+        }
 
         let arch = simd::arch();
         let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks(chunk_size)
+        let result = self
+            .par_chunks(chunk_size)
             .zip(vec.par_chunks(chunk_size))
             .map(|(a, b)| arch.dispatch(simd::VectorDot(a, b)))
-            .sum::<f64>()
+            .sum::<f64>();
+
+        Ok(result)
     }
 
     pub fn csr_spmv(&mut self, matrix: &CSRMatrix, vec: &Vector) -> Result<(), Error> {
@@ -181,8 +190,8 @@ impl Vector {
             .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
     }
 
-    pub fn magnitude(&self) -> f64 {
-        self.dot(self).sqrt()
+    pub fn magnitude(&self) -> Result<f64, Error> {
+        Ok(self.dot(self)?.sqrt())
     }
 }
 
@@ -315,7 +324,7 @@ mod tests {
         let v1 = Vector::from(vec![1.0; N]);
         let v2 = Vector::from(vec![1.0; N]);
 
-        assert_eq!(N as f64, v1.dot(&v2));
+        assert_eq!(N as f64, v1.dot(&v2)?);
 
         Ok(())
     }
@@ -340,13 +349,13 @@ mod tests {
     fn vector_magnitude_test() -> Result<(), Error> {
         let v = Vector::from(vec![1.0; N]);
 
-        assert_eq!(v.magnitude(), 50.0);
+        assert_eq!(v.magnitude()?, 50.0);
 
         Ok(())
     }
 
     #[test]
-    fn vector_csr_spmxv_test() {
+    fn vector_csr_spmxv_test() -> Result<(), Error> {
         let (rows, cols) = (5, 5);
         let row_ptr = vec![0, 2, 5, 9, 11, 12];
         let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
@@ -377,9 +386,11 @@ mod tests {
         let vec = Vector::from(vec![1.0; cols]);
         let mut result = Vector::new(cols);
 
-        result.csr_spmv(&matrix, &vec);
+        result.csr_spmv(&matrix, &vec)?;
 
         // 결과 비교
         assert_eq!(result, row_sum_vec);
+
+        Ok(())
     }
 }
