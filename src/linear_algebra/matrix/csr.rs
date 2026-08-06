@@ -67,7 +67,6 @@ impl Matrix for CSRMatrix {
 pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usize>, Error> {
     let m = row_ptr.len() - 1;
     let chunk_size = simd::calculate_chunk_size(m);
-    // let chunk_size = 2;
     let mut diag_ptr = vec![0; m];
 
     diag_ptr
@@ -79,7 +78,7 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
                 let start = row_ptr[global_i];
                 let end = row_ptr[global_i + 1];
 
-                match &col_indices[start..end].binary_search(&global_i) {
+                match col_indices[start..end].binary_search(&global_i) {
                     Ok(value) => *diag = start + value,
                     Err(_) => {
                         let msg = format!(
@@ -90,8 +89,10 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
                     }
                 }
             }
+
             Ok(())
         })?;
+
     Ok(diag_ptr)
 }
 

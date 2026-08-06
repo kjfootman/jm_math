@@ -159,7 +159,7 @@ impl Vector {
 
         if n != vec.len() {
             let msg = format!(
-                "Dimension mismatch for SpMV (Columns of matrix: {}, length of vector: {}",
+                "Dimension mismatch for SpMV (Columns of matrix: {}, length of vector: {})",
                 n,
                 vec.len()
             );
@@ -167,16 +167,33 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg));
         }
 
-        // todo: chunk_size로 최적화
-        self.par_iter_mut().enumerate().for_each(|(i, v)| {
-            let start = ia[i];
-            let end = ia[i + 1];
+        // self.par_iter_mut().enumerate().for_each(|(i, v)| {
+        //     let start = ia[i];
+        //     let end = ia[i + 1];
 
-            *v = (start..end)
-                .into_iter()
-                .map(|j| aa[j] * vec[ja[j]])
-                .sum::<f64>();
-        });
+        //     *v = (start..end)
+        //         .into_iter()
+        //         .map(|j| aa[j] * vec[ja[j]])
+        //         .sum::<f64>();
+        // });
+
+        let chunk_size = simd::calculate_chunk_size(m);
+
+        self.par_chunks_mut(chunk_size)
+            .enumerate()
+            .for_each(|(chunk_idx, chunked_arr)| {
+                chunked_arr.iter_mut().enumerate().for_each(|(i, v)| {
+                    // row index
+                    let global_i = chunk_idx * chunk_size + i;
+                    let start = ia[global_i];
+                    let end = ia[global_i + 1];
+
+                    *v = (start..end)
+                        .into_iter()
+                        .map(|j| aa[j] * vec[ja[j]])
+                        .sum::<f64>();
+                });
+            });
 
         Ok(())
     }

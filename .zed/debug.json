@@ -1,14 +1,4 @@
 [
-  // {
-  //   "label": "Build & Debug native binary",
-  //   "adapter": "CodeLLDB",
-  //   "request": "launch",
-  //   "cargo": {
-  //     "args": ["test", "--no-run", "--lib", "gauss_seidel_test"],
-  //   },
-  //   // sourceLanguages is required for CodeLLDB (not GDB) when using Rust
-  //   "sourceLanguages": ["rust"],
-  // },
   {
     "label": "Build & Debug native binary",
     "adapter": "CodeLLDB",
