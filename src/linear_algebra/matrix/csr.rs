@@ -24,8 +24,6 @@ pub struct CSRMatrixArgs {
 
 impl CSRMatrix {
     pub fn from_args(args: CSRMatrixArgs) -> CSRMatrix {
-        // todo: 대각 성분 포인터 찾기
-
         CSRMatrix {
             rows: args.rows,
             cols: args.cols,
@@ -63,7 +61,7 @@ impl Matrix for CSRMatrix {
     }
 }
 
-// Returns pointers to the diagonal elements
+/// Returns pointers to the diagonal elements
 pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usize>, Error> {
     let m = row_ptr.len() - 1;
     let chunk_size = simd::calculate_chunk_size(m);
