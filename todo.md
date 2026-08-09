@@ -1,0 +1,8 @@
+# TODO
+
+- [ ] mkt 파일 불러오기 기능
+- [ ] CSRMatrix에 diag_ptr 필드 추가
+- [ ] simple coordinate로부터 CSRMatrix 생성
+
+- [ ] GMRES 솔버 개발
+- [ ] Conjugate Gradient 솔버 개발
