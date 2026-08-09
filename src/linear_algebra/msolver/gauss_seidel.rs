@@ -83,6 +83,7 @@ impl MSolver for GaussSeidel {
         // let da = A.diag_ptr().ok_or(Error::ValueError(
         //     "Failed to get pointers to diagonal elements".into(),
         // ))?;
+        // todo : CSRMatrix 필드에 추가
         let da = csr::find_diag_ptr(ia, ja)?;
         let aa = A.values();
         let mut x = Vector::new(n);

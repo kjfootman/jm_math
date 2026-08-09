@@ -1,3 +1,5 @@
+use std::io::BufRead;
+
 use super::Matrix;
 use crate::{error::Error, linear_algebra::simd};
 use rayon::prelude::*;
@@ -32,6 +34,72 @@ impl CSRMatrix {
             col_indices: args.col_indices,
             values: args.values,
         }
+    }
+
+    pub fn from_mtx(path: &str) -> Result<Self, Error> {
+        log::info!("Import CSRMatrix from '{path}'");
+        let file = std::fs::File::open(path)?;
+        let reader = std::io::BufReader::new(file);
+        let mut lines = reader.lines();
+        let mut rows = 0;
+        let mut cols = 0;
+        let mut nnz = 0;
+        let mut row_ptr = Vec::new();
+        let mut col_indices = Vec::new();
+        let mut values = Vec::new();
+
+        while let Some(line) = lines.next() {
+            let line = line?;
+            let trimmed = line.trim();
+
+            // 주석 건너뛰기
+            if trimmed.starts_with("%") {
+                continue;
+            }
+
+            let tokens = trimmed.split_whitespace().collect::<Vec<_>>();
+
+            // 헤더 파싱
+            if rows == 0 {
+                rows = tokens[0]
+                    .parse::<usize>()
+                    .map_err(|e| Error::Parse(e.to_string()))?;
+                cols = tokens[1]
+                    .parse::<usize>()
+                    .map_err(|e| Error::Parse(e.to_string()))?;
+                nnz = tokens[2]
+                    .parse::<usize>()
+                    .map_err(|e| Error::Parse(e.to_string()))?;
+
+                row_ptr.reserve(rows + 1);
+                col_indices.reserve(nnz);
+                values.reserve(nnz);
+
+                continue;
+            }
+
+            if tokens.len() >= 3 {
+                let row = tokens[0]
+                    .parse::<usize>()
+                    .map_err(|e| Error::Parse(e.to_string()))?;
+                let col = tokens[1]
+                    .parse::<usize>()
+                    .map_err(|e| Error::Parse(e.to_string()))?;
+                let value = tokens[2]
+                    .parse::<f64>()
+                    .map_err(|e| Error::Parse(e.to_string()))?;
+
+                row_ptr.push(row);
+                col_indices.push(col);
+                values.push(value)
+            }
+
+            // println!("{rows}, {cols}, {nnz}");
+        }
+
+        println!("{rows}, {cols}, {nnz}");
+
+        todo!()
     }
 
     pub fn row_ptr(&self) -> &[usize] {
@@ -97,6 +165,11 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
+
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
 
     #[test]
     fn csr_diagonal_test() -> Result<(), Error> {
@@ -113,6 +186,17 @@ mod tests {
         let diag_ptr = find_diag_ptr(&row_ptr, &col_indices).inspect_err(|e| println!("{e:#?}"));
 
         assert!(diag_ptr.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn csr_from_mtx_test() -> Result<(), Error> {
+        init();
+        // log::info!("Current directory: {}", env::current_dir()?.display());
+
+        let path = "resources/mtx/e40r5000.mtx";
+        let matrix = CSRMatrix::from_mtx(path)?;
 
         Ok(())
     }
