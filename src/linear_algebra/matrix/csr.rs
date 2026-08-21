@@ -40,15 +40,16 @@ impl CSRMatrix {
         log::info!("Import CSRMatrix from '{path}'");
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
-        let mut lines = reader.lines();
+        let lines = reader.lines();
         let mut rows = 0;
-        let mut cols = 0;
-        let mut nnz = 0;
-        let mut row_ptr = Vec::new();
-        let mut col_indices = Vec::new();
-        let mut values = Vec::new();
+        let mut cols;
+        let mut nnz;
+        let mut row_ptr: Vec<usize> = Vec::new();
+        let mut col_indices: Vec<usize> = Vec::new();
+        let mut values: Vec<f64> = Vec::new();
+        let mut coordinates = Vec::new();
 
-        while let Some(line) = lines.next() {
+        for line in lines {
             let line = line?;
             let trimmed = line.trim();
 
@@ -61,43 +62,55 @@ impl CSRMatrix {
 
             // 헤더 파싱
             if rows == 0 {
-                rows = tokens[0]
-                    .parse::<usize>()
-                    .map_err(|e| Error::Parse(e.to_string()))?;
-                cols = tokens[1]
-                    .parse::<usize>()
-                    .map_err(|e| Error::Parse(e.to_string()))?;
-                nnz = tokens[2]
-                    .parse::<usize>()
-                    .map_err(|e| Error::Parse(e.to_string()))?;
+                rows = tokens[0].parse::<usize>()?;
+                cols = tokens[1].parse::<usize>()?;
+                nnz = tokens[2].parse::<usize>()?;
 
                 row_ptr.reserve(rows + 1);
                 col_indices.reserve(nnz);
                 values.reserve(nnz);
+                coordinates.reserve(nnz);
 
+                log::info!("rows: {rows} columns: {cols} nnz: {nnz}");
                 continue;
             }
 
             if tokens.len() >= 3 {
-                let row = tokens[0]
-                    .parse::<usize>()
-                    .map_err(|e| Error::Parse(e.to_string()))?;
-                let col = tokens[1]
-                    .parse::<usize>()
-                    .map_err(|e| Error::Parse(e.to_string()))?;
-                let value = tokens[2]
-                    .parse::<f64>()
-                    .map_err(|e| Error::Parse(e.to_string()))?;
+                let row = tokens[0].parse::<usize>()?;
+                let col = tokens[1].parse::<usize>()?;
+                let value = tokens[2].parse::<f64>()?;
 
-                row_ptr.push(row);
-                col_indices.push(col);
-                values.push(value)
+                coordinates.push((row, col, value));
             }
-
-            // println!("{rows}, {cols}, {nnz}");
         }
 
-        println!("{rows}, {cols}, {nnz}");
+        // coordinate 정렬
+        coordinates.par_sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+        coordinates
+            .iter()
+            .for_each(|(row, col, value)| println!("{row} {col} {value}"));
+
+        // 같은 열로 나누기
+        // let result = coordinates
+        //     .par_chunk_by(|a, b| a.0 == b.0)
+        //     .collect::<Vec<_>>();
+
+        // result.into_iter().for_each(|arr| {
+        //     for (row, col, value) in arr {
+        //         println!("{row}, {col}, {value}");
+        //     }
+        // });
+
+        coordinates
+            .par_chunk_by(|a, b| a.0 == b.0)
+            .try_for_each(|row_chunk| {
+                let row_first = row_chunk
+                    .first()
+                    .ok_or_else(|| Error::ValueError("()".into()))?;
+                for coordinate in row_chunk {}
+
+                Ok::<(), Error>(())
+            })?;
 
         todo!()
     }
@@ -165,7 +178,6 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
