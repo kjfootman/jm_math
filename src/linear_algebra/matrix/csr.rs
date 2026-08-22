@@ -1,8 +1,10 @@
-use std::io::BufRead;
-
 use super::Matrix;
 use crate::{error::Error, linear_algebra::simd};
 use rayon::prelude::*;
+use std::{
+    io::BufRead,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 #[derive(Debug, Default)]
 pub struct CSRMatrix {
@@ -38,15 +40,14 @@ impl CSRMatrix {
 
     pub fn from_mtx(path: &str) -> Result<Self, Error> {
         log::info!("Import CSRMatrix from '{path}'");
+
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
         let lines = reader.lines();
         let mut rows = 0;
-        let mut cols;
+        let mut cols = 0;
+        let mut sum = 0;
         let mut nnz;
-        let mut row_ptr: Vec<usize> = Vec::new();
-        let mut col_indices: Vec<usize> = Vec::new();
-        let mut values: Vec<f64> = Vec::new();
         let mut coordinates = Vec::new();
 
         for line in lines {
@@ -54,7 +55,7 @@ impl CSRMatrix {
             let trimmed = line.trim();
 
             // 주석 건너뛰기
-            if trimmed.starts_with("%") {
+            if trimmed.starts_with("%") || trimmed.is_empty() {
                 continue;
             }
 
@@ -66,9 +67,6 @@ impl CSRMatrix {
                 cols = tokens[1].parse::<usize>()?;
                 nnz = tokens[2].parse::<usize>()?;
 
-                row_ptr.reserve(rows + 1);
-                col_indices.reserve(nnz);
-                values.reserve(nnz);
                 coordinates.reserve(nnz);
 
                 log::info!("rows: {rows} columns: {cols} nnz: {nnz}");
@@ -86,33 +84,49 @@ impl CSRMatrix {
 
         // coordinate 정렬
         coordinates.par_sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
-        coordinates
-            .iter()
-            .for_each(|(row, col, value)| println!("{row} {col} {value}"));
 
-        // 같은 열로 나누기
-        // let result = coordinates
-        //     .par_chunk_by(|a, b| a.0 == b.0)
-        //     .collect::<Vec<_>>();
+        // col_incide, values 배열 세팅
+        // coordinate에서 col_indices과 values 정보 분리
+        let (col_indices, values): (Vec<_>, Vec<_>) = coordinates
+            .par_iter()
+            // mtx 포맷은 1부터 인덱스가 시작
+            .map(|&(_, col, value)| (col - 1, value))
+            .unzip();
 
-        // result.into_iter().for_each(|arr| {
-        //     for (row, col, value) in arr {
-        //         println!("{row}, {col}, {value}");
-        //     }
-        // });
+        // row_ptr 배열 세팅
+        let row_ptr_atomic = (0..rows + 1)
+            .map(|_| AtomicUsize::new(0))
+            .collect::<Vec<_>>();
 
+        // 행 별로 nnz 카운트
         coordinates
             .par_chunk_by(|a, b| a.0 == b.0)
-            .try_for_each(|row_chunk| {
-                let row_first = row_chunk
-                    .first()
-                    .ok_or_else(|| Error::ValueError("()".into()))?;
-                for coordinate in row_chunk {}
+            .for_each(|chunk| {
+                if let Some(&(row, _, _)) = chunk.first() {
+                    row_ptr_atomic[row].store(chunk.len(), Ordering::Relaxed);
+                }
+            });
 
-                Ok::<(), Error>(())
-            })?;
+        let mut row_ptr = row_ptr_atomic
+            .into_par_iter()
+            .map(|atomic| atomic.into_inner())
+            .collect::<Vec<_>>();
 
-        todo!()
+        // 행 별 nnz 누적 합
+        for val in row_ptr.iter_mut() {
+            sum += *val;
+            *val = sum;
+        }
+
+        let matrix = CSRMatrix::from_args(CSRMatrixArgs {
+            rows,
+            cols,
+            row_ptr,
+            col_indices,
+            values,
+        });
+
+        Ok(matrix)
     }
 
     pub fn row_ptr(&self) -> &[usize] {
@@ -207,8 +221,11 @@ mod tests {
         init();
         // log::info!("Current directory: {}", env::current_dir()?.display());
 
-        let path = "resources/mtx/e40r5000.mtx";
+        // let path = "resources/mtx/e40r5000.mtx";
+        let path = "resources/mtx/3x3_txt.mtx";
         let matrix = CSRMatrix::from_mtx(path)?;
+
+        println!("{matrix:#?}");
 
         Ok(())
     }
