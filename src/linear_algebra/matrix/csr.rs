@@ -39,7 +39,7 @@ impl CSRMatrix {
     }
 
     pub fn from_mtx(path: &str) -> Result<Self, Error> {
-        log::info!("Import CSRMatrix from '{path}'");
+        log::debug!("Import CSRMatrix from '{path}'");
 
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
@@ -69,7 +69,7 @@ impl CSRMatrix {
 
                 coordinates.reserve(nnz);
 
-                log::info!("rows: {rows} columns: {cols} nnz: {nnz}");
+                log::debug!("rows: {rows} columns: {cols} nnz: {nnz}");
                 continue;
             }
 
@@ -225,7 +225,7 @@ mod tests {
         let path = "resources/mtx/3x3_txt.mtx";
         let matrix = CSRMatrix::from_mtx(path)?;
 
-        println!("{matrix:#?}");
+        // println!("{matrix:#?}");
 
         Ok(())
     }
