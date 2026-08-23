@@ -3,6 +3,7 @@ use crate::linear_algebra::CSRMatrix;
 use crate::{error::Error, linear_algebra::Matrix};
 use log::error;
 use rayon::prelude::*;
+use std::io::BufRead;
 use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
 
 #[derive(Debug, PartialEq)]
@@ -11,8 +12,8 @@ pub struct Vector {
 }
 
 impl Vector {
-    // Returns the zero vector of size `size`.
-    // - size: the length of vector
+    /// Returns the zero vector of input size.
+    /// - size: the length of vector
     pub fn new(size: usize) -> Self {
         Self {
             values: vec![0.0; size],
@@ -210,6 +211,58 @@ impl Vector {
     pub fn magnitude(&self) -> Result<f64, Error> {
         Ok(self.dot(self)?.sqrt())
     }
+
+    /// Import a `Vector` from a MTX file and return it.
+    pub fn from_mtx(path: &str) -> Result<Self, Error> {
+        log::debug!("Import a Vector from '{path}'");
+
+        let file = std::fs::File::open(path)?;
+        let reader = std::io::BufReader::new(file);
+        let lines = reader.lines();
+        let mut rows = 0;
+        let mut cols;
+        let mut values = Vec::new();
+
+        for line in lines {
+            let line = line?;
+            let trimmed = line.trim();
+
+            // 주석 및 공백 건너뛰기
+            if trimmed.starts_with("%") || trimmed.is_empty() {
+                continue;
+            }
+
+            let mut tokens = trimmed.split_whitespace();
+
+            // 헤더 파싱
+            if rows == 0 {
+                rows = tokens
+                    .next()
+                    .ok_or_else(|| Error::ValueError("Invalid format: missing rows".into()))?
+                    .parse::<usize>()?;
+
+                cols = tokens
+                    .next()
+                    .ok_or_else(|| Error::ValueError("Invalid format: missing rows".into()))?
+                    .parse::<usize>()?;
+
+                values.reserve(rows);
+
+                log::debug!("rows: {rows} columns: {cols}");
+                continue;
+            }
+
+            let row = tokens
+                .next()
+                .ok_or_else(|| Error::ValueError("Invalid format: missing row".into()))?
+                .parse::<f64>()?;
+            values.push(row);
+        }
+
+        let vector = Vector::from(values);
+
+        Ok(vector)
+    }
 }
 
 impl Deref for Vector {
@@ -275,6 +328,10 @@ mod tests {
     use super::*;
     use crate::linear_algebra::CSRMatrixArgs;
     const N: usize = 2_500;
+
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
 
     #[test]
     /// Unit test for `Vector` addition.
@@ -407,6 +464,18 @@ mod tests {
 
         // 결과 비교
         assert_eq!(result, row_sum_vec);
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_from_mtx_test() -> Result<(), Error> {
+        init();
+
+        let path = "resources/mtx/e40r5000_rhs1.mtx";
+        let v = Vector::from_mtx(path)?;
+
+        assert_eq!(v.len(), 17281);
 
         Ok(())
     }
