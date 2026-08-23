@@ -38,8 +38,9 @@ impl CSRMatrix {
         }
     }
 
+    /// Import a `CSRMatrix` from a MTX file and return it.
     pub fn from_mtx(path: &str) -> Result<Self, Error> {
-        log::debug!("Import CSRMatrix from '{path}'");
+        log::debug!("Import a CSRMatrix from '{path}'");
 
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
@@ -54,18 +55,29 @@ impl CSRMatrix {
             let line = line?;
             let trimmed = line.trim();
 
-            // 주석 건너뛰기
+            // 주석 및 공백 건너뛰기
             if trimmed.starts_with("%") || trimmed.is_empty() {
                 continue;
             }
 
-            let tokens = trimmed.split_whitespace().collect::<Vec<_>>();
+            let mut tokens = trimmed.split_whitespace();
 
             // 헤더 파싱
             if rows == 0 {
-                rows = tokens[0].parse::<usize>()?;
-                cols = tokens[1].parse::<usize>()?;
-                nnz = tokens[2].parse::<usize>()?;
+                rows = tokens
+                    .next()
+                    .ok_or_else(|| Error::ValueError("Invalid format: missing rows".into()))?
+                    .parse::<usize>()?;
+
+                cols = tokens
+                    .next()
+                    .ok_or_else(|| Error::ValueError("Invalid format: missing cols".into()))?
+                    .parse::<usize>()?;
+
+                nnz = tokens
+                    .next()
+                    .ok_or_else(|| Error::ValueError("Invalid format: missing nnz".into()))?
+                    .parse::<usize>()?;
 
                 coordinates.reserve(nnz);
 
@@ -73,13 +85,20 @@ impl CSRMatrix {
                 continue;
             }
 
-            if tokens.len() >= 3 {
-                let row = tokens[0].parse::<usize>()?;
-                let col = tokens[1].parse::<usize>()?;
-                let value = tokens[2].parse::<f64>()?;
+            let row = tokens
+                .next()
+                .ok_or_else(|| Error::ValueError("Invalid format: missing row".into()))?
+                .parse::<usize>()?;
+            let col = tokens
+                .next()
+                .ok_or_else(|| Error::ValueError("Invalid format: missing col".into()))?
+                .parse::<usize>()?;
+            let value = tokens
+                .next()
+                .ok_or_else(|| Error::ValueError("Invalid format: missing value".into()))?
+                .parse::<f64>()?;
 
-                coordinates.push((row, col, value));
-            }
+            coordinates.push((row, col, value));
         }
 
         // coordinate 정렬
@@ -156,7 +175,7 @@ impl Matrix for CSRMatrix {
     }
 }
 
-/// Returns pointers to the diagonal elements
+/// Returns pointers to the diagonal elements.
 pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usize>, Error> {
     let m = row_ptr.len() - 1;
     let chunk_size = simd::calculate_chunk_size(m);
