@@ -1,6 +1,7 @@
 # TODO
 
-- [ ] mkt 파일 불러오기 기능
+- [x] mkt 파일로터 `CRSMatrix` 행렬 불러오기
+- [ ] mtk 파일로부터 `Vector` 불러오기
 - [ ] CSRMatrix에 diag_ptr 필드 추가
 - [ ] simple coordinate로부터 CSRMatrix 생성
 

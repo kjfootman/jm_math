@@ -165,8 +165,8 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
     diag_ptr
         .par_chunks_mut(chunk_size)
         .enumerate()
-        .try_for_each(|(chunk_idx, local_diag_ptr)| {
-            for (i, diag) in local_diag_ptr.iter_mut().enumerate() {
+        .try_for_each(|(chunk_idx, chunk)| {
+            for (i, diag) in chunk.iter_mut().enumerate() {
                 let global_i = chunk_idx * chunk_size + i;
                 let start = row_ptr[global_i];
                 let end = row_ptr[global_i + 1];
@@ -219,13 +219,14 @@ mod tests {
     #[test]
     fn csr_from_mtx_test() -> Result<(), Error> {
         init();
-        // log::info!("Current directory: {}", env::current_dir()?.display());
-
-        // let path = "resources/mtx/e40r5000.mtx";
-        let path = "resources/mtx/3x3_txt.mtx";
+        let path = "resources/mtx/3x3Test.mtx";
         let matrix = CSRMatrix::from_mtx(path)?;
 
-        // println!("{matrix:#?}");
+        assert_eq!(matrix.rows, 3);
+        assert_eq!(matrix.cols, 3);
+        assert_eq!(matrix.row_ptr, vec![0, 2, 4, 7]);
+        assert_eq!(matrix.col_indices, vec![0, 2, 1, 2, 0, 1, 2]);
+        assert_eq!(matrix.values, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]);
 
         Ok(())
     }
