@@ -1,11 +1,16 @@
 # TODO
 
-- [x] mkt 파일로터 `CRSMatrix` 행렬 불러오기
-- [ ] mtk 파일로부터 `Vector` 불러오기
-- [ ] CSRMatrix에 diag_ptr 필드 추가
-- [x] simple coordinate로부터 CSRMatrix 생성
+- [x] MKT 파일로터 `CRSMatrix` 행렬 불러오기
+- [x] MTK 파일로부터 `Vector` 불러오기
+- [x] CSRMatrix에 diag_ptr 필드 추가
+- [x] CSRMatrix에 with_diag_ptr 매소드 개발
+- [ ] Simple coordinate로부터 CSRMatrix 생성 -> CSRMatrix::from_coo
 
+- [ ] SOR(w) 솔버 개발
 - [ ] GMRES 솔버 개발
 - [ ] Conjugate Gradient 솔버 개발
 
 - [ ] ILU Preconditioner 개발
+- [ ] SOR(w) Preconditioner 개발
+
+- [ ] Level scheduling 기법 개발

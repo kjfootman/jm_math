@@ -7,14 +7,14 @@ fn main() -> Result<(), Error> {
     let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
     let b = get_source(&M);
     let gs = GaussSeidelBuilder::new()
-        .iter_max(5000)
-        .tolerance(1E-12)
+        .with_max_iter(5000)
+        .with_tolerance(1E-12)
         .build();
 
     match gs.solve(&M, &b) {
         Ok(_) => {
             log::info!(
-                "Converged - iteration: {}, residual: {:.2E}",
+                "Converged - iteration: {} - residual: {:.2E}",
                 gs.iter(),
                 gs.residual()
             );
