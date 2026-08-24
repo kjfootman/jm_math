@@ -65,23 +65,17 @@ impl CSRMatrix {
             }
 
             let mut tokens = trimmed.split_whitespace();
+            let mut next_token = |item| {
+                tokens
+                    .next()
+                    .ok_or_else(|| Error::ValueError(format!("Invalid format: missing {item}")))
+            };
 
             // 헤더 파싱
             if rows == 0 {
-                rows = tokens
-                    .next()
-                    .ok_or_else(|| Error::ValueError("Invalid format: missing rows".into()))?
-                    .parse::<usize>()?;
-
-                cols = tokens
-                    .next()
-                    .ok_or_else(|| Error::ValueError("Invalid format: missing cols".into()))?
-                    .parse::<usize>()?;
-
-                nnz = tokens
-                    .next()
-                    .ok_or_else(|| Error::ValueError("Invalid format: missing nnz".into()))?
-                    .parse::<usize>()?;
+                rows = next_token("rows")?.parse::<usize>()?;
+                cols = next_token("cols")?.parse::<usize>()?;
+                nnz = next_token("nnz")?.parse::<usize>()?;
 
                 coordinates.reserve(nnz);
 
@@ -89,18 +83,9 @@ impl CSRMatrix {
                 continue;
             }
 
-            let row = tokens
-                .next()
-                .ok_or_else(|| Error::ValueError("Invalid format: missing row".into()))?
-                .parse::<usize>()?;
-            let col = tokens
-                .next()
-                .ok_or_else(|| Error::ValueError("Invalid format: missing col".into()))?
-                .parse::<usize>()?;
-            let value = tokens
-                .next()
-                .ok_or_else(|| Error::ValueError("Invalid format: missing value".into()))?
-                .parse::<f64>()?;
+            let row = next_token("row")?.parse::<usize>()?;
+            let col = next_token("col")?.parse::<usize>()?;
+            let value = next_token("value")?.parse::<f64>()?;
 
             coordinates.push((row, col, value));
 
@@ -198,18 +183,6 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
                 let start = row_ptr[global_i];
                 let end = row_ptr[global_i + 1];
 
-                // match col_indices[start..end].binary_search(&global_i) {
-                //     Ok(value) => *diag = start + value,
-                //     Err(_) => {
-                //         let msg = format!(
-                //             "Failed to find the pointer to the diagonal element of row {}",
-                //             global_i
-                //         );
-
-                //         return Err(Error::ValueError(msg));
-                //     }
-                // }
-
                 // global_i 와 동일한 열 인덱스 찾기
                 let col_idx = col_indices[start..end]
                     .binary_search(&global_i)
@@ -223,78 +196,6 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
 
     Ok(diag_ptr)
 }
-
-// pub struct MTXContents {
-//     rows: usize,
-//     cols: usize,
-//     coordinates: Vec<(usize, usize, f64)>,
-// }
-
-// pub fn read_mtx_iter(path: &str) -> Result<MTXContents, Error> {
-//     let file = std::fs::File::open(path)?;
-//     let reader = std::io::BufReader::new(file);
-//     let lines = reader.lines();
-//     let mut rows = 0;
-//     let mut cols = 0;
-//     let mut nnz;
-//     let mut coordinates = Vec::new();
-
-//     for line in lines {
-//         let line = line?;
-//         let trimmed = line.trim();
-
-//         // 주석 및 공백 건너뛰기
-//         if trimmed.starts_with("%") || trimmed.is_empty() {
-//             continue;
-//         }
-
-//         let mut tokens = trimmed.split_whitespace();
-
-//         // 헤더 파싱
-//         if rows == 0 {
-//             rows = tokens
-//                 .next()
-//                 .ok_or_else(|| Error::ValueError("Invalid format: missing rows".into()))?
-//                 .parse::<usize>()?;
-
-//             cols = tokens
-//                 .next()
-//                 .ok_or_else(|| Error::ValueError("Invalid format: missing cols".into()))?
-//                 .parse::<usize>()?;
-
-//             nnz = tokens
-//                 .next()
-//                 .ok_or_else(|| Error::ValueError("Invalid format: missing nnz".into()))?
-//                 .parse::<usize>()?;
-
-//             coordinates.reserve(nnz);
-
-//             log::debug!("rows: {rows} columns: {cols} nnz: {nnz}");
-//             continue;
-//         }
-
-//         let row = tokens
-//             .next()
-//             .ok_or_else(|| Error::ValueError("Invalid format: missing row".into()))?
-//             .parse::<usize>()?;
-//         let col = tokens
-//             .next()
-//             .ok_or_else(|| Error::ValueError("Invalid format: missing col".into()))?
-//             .parse::<usize>()?;
-//         let value = tokens
-//             .next()
-//             .ok_or_else(|| Error::ValueError("Invalid format: missing value".into()))?
-//             .parse::<f64>()?;
-
-//         coordinates.push((row, col, value));
-//     }
-
-//     Ok(MTXContents {
-//         rows,
-//         cols,
-//         coordinates,
-//     })
-// }
 
 #[cfg(test)]
 mod tests {
