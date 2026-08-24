@@ -46,12 +46,12 @@ impl GaussSeidelBuilder {
         }
     }
 
-    pub fn tolerance(mut self, tolerance: f64) -> Self {
+    pub fn with_tolerance(mut self, tolerance: f64) -> Self {
         self.tolerance = Some(tolerance);
         self
     }
 
-    pub fn iter_max(mut self, iter_max: usize) -> Self {
+    pub fn with_max_iter(mut self, iter_max: usize) -> Self {
         self.iter_max = Some(iter_max);
         self
     }
@@ -80,11 +80,11 @@ impl MSolver for GaussSeidel {
         let A = matrix;
         let ia = A.row_ptr();
         let ja = A.col_indices();
-        // let da = A.diag_ptr().ok_or(Error::ValueError(
-        //     "Failed to get pointers to diagonal elements".into(),
-        // ))?;
-        // todo : CSRMatrix 필드에 추가
-        let da = csr::find_diag_ptr(ia, ja)?;
+        // TODO : CSRMatrix 필드에 추가
+        // let da = csr::find_diag_ptr(ia, ja)?;
+        let da = A
+            .diag_ptr()
+            .ok_or_else(|| Error::ValueError("Diagonal pointer is not initialized".into()))?;
         let aa = A.values();
         let mut x = Vector::new(n);
         let mut r = Vector::new(n);
@@ -141,22 +141,22 @@ mod tests {
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
-        // let diag_ptr = csr::find_diag_ptr(&row_ptr, &col_indices).ok();
+        let diag_ptr = csr::find_diag_ptr(&row_ptr, &col_indices).ok();
         let values = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
 
         let M = CSRMatrix::from_args(CSRMatrixArgs {
             rows,
             cols,
             row_ptr,
-            // diag_ptr,
+            diag_ptr,
             col_indices,
             values,
         });
         let b = Vector::from(vec![6.0, 15.0, 15.0, 9.0]);
 
         let gs = GaussSeidelBuilder::new()
-            .iter_max(50)
-            .tolerance(1E-7)
+            .with_max_iter(50)
+            .with_tolerance(1E-7)
             .build();
 
         let x = gs.solve(&M, &b)?;

@@ -450,10 +450,13 @@ mod tests {
         // 6.0   0.0   7.0   8.0   9.0   |   1.0
         // 0.0   0.0  10.0  11.0   0.0   |   1.0
         // 0.0   0.0   0.0   0.0  12.0   |   1.0
+
+        // TODO: diag_ptr 설정
         let matrix = CSRMatrix::from_args(CSRMatrixArgs {
             rows,
             cols,
             row_ptr,
+            diag_ptr: None,
             col_indices,
             values,
         });

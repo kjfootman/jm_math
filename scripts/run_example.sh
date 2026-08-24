@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXAMPLE="gauss_seidel"
+EXAMPLE="gauss_seidel_demo"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
