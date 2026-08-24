@@ -6,6 +6,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/jm_lib/linear_algebra/matrix/csr.md"))]
 #[derive(Debug, Default)]
 pub struct CSRMatrix {
     rows: usize,
@@ -38,7 +39,8 @@ impl CSRMatrix {
         }
     }
 
-    // Construct a `CSRMatrix` from the coordinates and return it.
+    /// Construct a `CSRMatrix` from the coordinates and return it.
+    /// Note that this method automatically sets the `diag_ptr`.
     pub fn from_coordinates(
         rows: usize,
         cols: usize,
@@ -106,7 +108,6 @@ impl CSRMatrix {
         let mut is_symmetric = false;
         let mut rows = 0;
         let mut cols = 0;
-        let mut sum = 0;
         let mut nnz;
         let mut coordinates = Vec::new();
 
@@ -152,74 +153,81 @@ impl CSRMatrix {
             }
         }
 
-        // coordinate 정렬
-        coordinates.par_sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+        // // coordinate 정렬
+        // coordinates.par_sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
 
-        // 1. col_incide, values 배열 세팅
-        // 1.1 coordinate에서 col_indices과 values 정보 분리
-        let (col_indices, values): (Vec<_>, Vec<_>) = coordinates
-            .par_iter()
-            // mtx 포맷은 1부터 인덱스가 시작
-            .map(|&(_, col, value)| (col - 1, value))
-            .unzip();
+        // // 1. col_incide, values 배열 세팅
+        // // 1.1 coordinate에서 col_indices과 values 정보 분리
+        // let (col_indices, values): (Vec<_>, Vec<_>) = coordinates
+        //     .par_iter()
+        //     // mtx 포맷은 1부터 인덱스가 시작
+        //     .map(|&(_, col, value)| (col - 1, value))
+        //     .unzip();
 
-        // 2. row_ptr 배열 세팅
-        let row_ptr_atomic = (0..rows + 1)
-            .map(|_| AtomicUsize::new(0))
-            .collect::<Vec<_>>();
+        // // 2. row_ptr 배열 세팅
+        // let row_ptr_atomic = (0..rows + 1)
+        //     .map(|_| AtomicUsize::new(0))
+        //     .collect::<Vec<_>>();
 
-        // 2.1 행 별로 nnz 카운트 ->
-        coordinates
-            .par_chunk_by(|a, b| a.0 == b.0)
-            .for_each(|chunk| {
-                if let Some(&(row, _, _)) = chunk.first() {
-                    row_ptr_atomic[row].store(chunk.len(), Ordering::Relaxed);
-                }
-            });
+        // // 2.1 행 별로 nnz 카운트 ->
+        // coordinates
+        //     .par_chunk_by(|a, b| a.0 == b.0)
+        //     .for_each(|chunk| {
+        //         if let Some(&(row, _, _)) = chunk.first() {
+        //             row_ptr_atomic[row].store(chunk.len(), Ordering::Relaxed);
+        //         }
+        //     });
 
-        // 2.2 row_ptr_atomic 형 변환
-        let mut row_ptr = row_ptr_atomic
-            .into_par_iter()
-            .map(|atomic| atomic.into_inner())
-            .collect::<Vec<_>>();
+        // // 2.2 row_ptr_atomic 형 변환
+        // let mut row_ptr = row_ptr_atomic
+        //     .into_par_iter()
+        //     .map(|atomic| atomic.into_inner())
+        //     .collect::<Vec<_>>();
 
-        // 2.3 행 별 nnz 누적 합 -> 최종 row_ptr 완성
-        for val in row_ptr.iter_mut() {
-            sum += *val;
-            *val = sum;
-        }
+        // // 2.3 행 별 nnz 누적 합 -> 최종 row_ptr 완성
+        // for val in row_ptr.iter_mut() {
+        //     sum += *val;
+        //     *val = sum;
+        // }
 
-        // 3. 대각 성분 구성
-        let diag_ptr = find_diag_ptr(&row_ptr, &col_indices).ok();
+        // // 3. 대각 성분 구성
+        // let diag_ptr = find_diag_ptr(&row_ptr, &col_indices).ok();
 
-        let matrix = CSRMatrix::from_args(CSRMatrixArgs {
-            rows,
-            cols,
-            row_ptr,
-            diag_ptr,
-            col_indices,
-            values,
-        });
+        // let matrix = CSRMatrix::from_args(CSRMatrixArgs {
+        //     rows,
+        //     cols,
+        //     row_ptr,
+        //     diag_ptr,
+        //     col_indices,
+        //     values,
+        // });
+
+        let matrix = Self::from_coordinates(rows, cols, coordinates);
 
         Ok(matrix)
     }
 
+    /// Return the `row_ptr`.
     pub fn row_ptr(&self) -> &[usize] {
         &self.row_ptr
     }
 
+    /// Return the `col_indices`.
     pub fn col_indices(&self) -> &[usize] {
         &self.col_indices
     }
 
+    /// Return the `diag_ptr`.
     pub fn diag_ptr(&self) -> Option<&[usize]> {
         self.diag_ptr.as_deref()
     }
 
+    /// Return the `values`.
     pub fn values(&self) -> &[f64] {
         &self.values
     }
 
+    /// Set the `diag_ptr` of a `CSRMatrix`.
     pub fn with_diag_ptr(mut self, diag_ptr: Vec<usize>) -> Self {
         if self.diag_ptr().is_none() {
             self.diag_ptr = Some(diag_ptr)
