@@ -45,6 +45,7 @@ impl CSRMatrix {
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
         let lines = reader.lines();
+        let mut is_symmetric = false;
         let mut rows = 0;
         let mut cols = 0;
         let mut sum = 0;
@@ -57,6 +58,9 @@ impl CSRMatrix {
 
             // 주석 및 공백 건너뛰기
             if trimmed.starts_with("%") || trimmed.is_empty() {
+                if trimmed.to_lowercase().contains("symmetric") {
+                    is_symmetric = true;
+                }
                 continue;
             }
 
@@ -99,6 +103,10 @@ impl CSRMatrix {
                 .parse::<f64>()?;
 
             coordinates.push((row, col, value));
+
+            if is_symmetric && row != col {
+                coordinates.push((col, row, value));
+            }
         }
 
         // coordinate 정렬
@@ -190,23 +198,103 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
                 let start = row_ptr[global_i];
                 let end = row_ptr[global_i + 1];
 
-                match col_indices[start..end].binary_search(&global_i) {
-                    Ok(value) => *diag = start + value,
-                    Err(_) => {
-                        let msg = format!(
-                            "Failed to find the pointer to the diagonal element of row {}",
-                            global_i
-                        );
-                        return Err(Error::ValueError(msg));
-                    }
-                }
+                // match col_indices[start..end].binary_search(&global_i) {
+                //     Ok(value) => *diag = start + value,
+                //     Err(_) => {
+                //         let msg = format!(
+                //             "Failed to find the pointer to the diagonal element of row {}",
+                //             global_i
+                //         );
+
+                //         return Err(Error::ValueError(msg));
+                //     }
+                // }
+
+                // global_i 와 동일한 열 인덱스 찾기
+                let col_idx = col_indices[start..end]
+                    .binary_search(&global_i)
+                    .map_err(|_| Error::MissingDiagonal(global_i))?;
+
+                *diag = start + col_idx;
             }
 
-            Ok(())
+            Ok::<(), Error>(())
         })?;
 
     Ok(diag_ptr)
 }
+
+// pub struct MTXContents {
+//     rows: usize,
+//     cols: usize,
+//     coordinates: Vec<(usize, usize, f64)>,
+// }
+
+// pub fn read_mtx_iter(path: &str) -> Result<MTXContents, Error> {
+//     let file = std::fs::File::open(path)?;
+//     let reader = std::io::BufReader::new(file);
+//     let lines = reader.lines();
+//     let mut rows = 0;
+//     let mut cols = 0;
+//     let mut nnz;
+//     let mut coordinates = Vec::new();
+
+//     for line in lines {
+//         let line = line?;
+//         let trimmed = line.trim();
+
+//         // 주석 및 공백 건너뛰기
+//         if trimmed.starts_with("%") || trimmed.is_empty() {
+//             continue;
+//         }
+
+//         let mut tokens = trimmed.split_whitespace();
+
+//         // 헤더 파싱
+//         if rows == 0 {
+//             rows = tokens
+//                 .next()
+//                 .ok_or_else(|| Error::ValueError("Invalid format: missing rows".into()))?
+//                 .parse::<usize>()?;
+
+//             cols = tokens
+//                 .next()
+//                 .ok_or_else(|| Error::ValueError("Invalid format: missing cols".into()))?
+//                 .parse::<usize>()?;
+
+//             nnz = tokens
+//                 .next()
+//                 .ok_or_else(|| Error::ValueError("Invalid format: missing nnz".into()))?
+//                 .parse::<usize>()?;
+
+//             coordinates.reserve(nnz);
+
+//             log::debug!("rows: {rows} columns: {cols} nnz: {nnz}");
+//             continue;
+//         }
+
+//         let row = tokens
+//             .next()
+//             .ok_or_else(|| Error::ValueError("Invalid format: missing row".into()))?
+//             .parse::<usize>()?;
+//         let col = tokens
+//             .next()
+//             .ok_or_else(|| Error::ValueError("Invalid format: missing col".into()))?
+//             .parse::<usize>()?;
+//         let value = tokens
+//             .next()
+//             .ok_or_else(|| Error::ValueError("Invalid format: missing value".into()))?
+//             .parse::<f64>()?;
+
+//         coordinates.push((row, col, value));
+//     }
+
+//     Ok(MTXContents {
+//         rows,
+//         cols,
+//         coordinates,
+//     })
+// }
 
 #[cfg(test)]
 mod tests {
@@ -218,7 +306,10 @@ mod tests {
 
     #[test]
     fn csr_diagonal_test() -> Result<(), Error> {
+        init();
+
         // case1: 대각 성분에 0 이 없을 경우
+        log::debug!("Case1 - zero value is not contained in diagonal");
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
         let diag_ptr = find_diag_ptr(&row_ptr, &col_indices)?;
@@ -226,9 +317,10 @@ mod tests {
         assert_eq!(diag_ptr, vec![0, 4, 6, 8]);
 
         // case2: 대각 성분에 0 이 있을 경우
+        log::debug!("Case2 - zero value contained in diagonal");
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 1, 3, 3];
-        let diag_ptr = find_diag_ptr(&row_ptr, &col_indices).inspect_err(|e| println!("{e:#?}"));
+        let diag_ptr = find_diag_ptr(&row_ptr, &col_indices).inspect_err(|e| log::warn!("{e}"));
 
         assert!(diag_ptr.is_err());
 

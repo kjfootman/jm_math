@@ -101,16 +101,16 @@ impl MSolver for GaussSeidel {
                 let start = ia[i];
                 let end = ia[i + 1];
 
-                x[i] = b[i];
+                let mut sum = b[i];
                 for j in start..da[i] {
-                    x[i] -= aa[j] * x[ja[j]];
+                    sum -= aa[j] * x[ja[j]];
                 }
 
                 for j in da[i] + 1..end {
-                    x[i] -= aa[j] * x[ja[j]];
+                    sum -= aa[j] * x[ja[j]];
                 }
 
-                x[i] /= aa[da[i]];
+                x[i] = sum / aa[da[i]];
             }
 
             // calculate residual vector r - Ax
@@ -120,6 +120,11 @@ impl MSolver for GaussSeidel {
             *residual = r.magnitude()?.abs() / b_mag;
 
             *iter += 1;
+
+            log::debug!("iter: {}, residual: {:.2E}", *iter, *residual);
+            if *iter >= iter_max {
+                return Err(Error::Convergence(*iter, *residual));
+            }
         }
 
         Ok(x)
