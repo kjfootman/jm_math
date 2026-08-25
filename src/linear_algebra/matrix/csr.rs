@@ -7,6 +7,7 @@ use std::{
 };
 
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/jm_lib/linear_algebra/matrix/csr.md"))]
+#[cfg_attr(test, derive(PartialEq))]
 #[derive(Debug, Default)]
 pub struct CSRMatrix {
     rows: usize,
@@ -55,8 +56,7 @@ impl CSRMatrix {
         // 1.1 coordinate에서 col_indices과 values 정보 분리
         let (col_indices, values): (Vec<_>, Vec<_>) = coordinates
             .par_iter()
-            // mtx 포맷은 1부터 인덱스가 시작
-            .map(|&(_, col, value)| (col - 1, value))
+            .map(|&(_, col, value)| (col, value))
             .unzip();
 
         // 2. row_ptr 배열 세팅
@@ -69,7 +69,7 @@ impl CSRMatrix {
             .par_chunk_by(|a, b| a.0 == b.0)
             .for_each(|chunk| {
                 if let Some(&(row, _, _)) = chunk.first() {
-                    row_ptr_atomic[row].store(chunk.len(), Ordering::Relaxed);
+                    row_ptr_atomic[row + 1].store(chunk.len(), Ordering::Relaxed);
                 }
             });
 
@@ -142,8 +142,8 @@ impl CSRMatrix {
                 continue;
             }
 
-            let row = next_token("row")?.parse::<usize>()?;
-            let col = next_token("col")?.parse::<usize>()?;
+            let row = next_token("row")?.parse::<usize>()? - 1;
+            let col = next_token("col")?.parse::<usize>()? - 1;
             let value = next_token("value")?.parse::<f64>()?;
 
             coordinates.push((row, col, value));
@@ -153,58 +153,7 @@ impl CSRMatrix {
             }
         }
 
-        // // coordinate 정렬
-        // coordinates.par_sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
-
-        // // 1. col_incide, values 배열 세팅
-        // // 1.1 coordinate에서 col_indices과 values 정보 분리
-        // let (col_indices, values): (Vec<_>, Vec<_>) = coordinates
-        //     .par_iter()
-        //     // mtx 포맷은 1부터 인덱스가 시작
-        //     .map(|&(_, col, value)| (col - 1, value))
-        //     .unzip();
-
-        // // 2. row_ptr 배열 세팅
-        // let row_ptr_atomic = (0..rows + 1)
-        //     .map(|_| AtomicUsize::new(0))
-        //     .collect::<Vec<_>>();
-
-        // // 2.1 행 별로 nnz 카운트 ->
-        // coordinates
-        //     .par_chunk_by(|a, b| a.0 == b.0)
-        //     .for_each(|chunk| {
-        //         if let Some(&(row, _, _)) = chunk.first() {
-        //             row_ptr_atomic[row].store(chunk.len(), Ordering::Relaxed);
-        //         }
-        //     });
-
-        // // 2.2 row_ptr_atomic 형 변환
-        // let mut row_ptr = row_ptr_atomic
-        //     .into_par_iter()
-        //     .map(|atomic| atomic.into_inner())
-        //     .collect::<Vec<_>>();
-
-        // // 2.3 행 별 nnz 누적 합 -> 최종 row_ptr 완성
-        // for val in row_ptr.iter_mut() {
-        //     sum += *val;
-        //     *val = sum;
-        // }
-
-        // // 3. 대각 성분 구성
-        // let diag_ptr = find_diag_ptr(&row_ptr, &col_indices).ok();
-
-        // let matrix = CSRMatrix::from_args(CSRMatrixArgs {
-        //     rows,
-        //     cols,
-        //     row_ptr,
-        //     diag_ptr,
-        //     col_indices,
-        //     values,
-        // });
-
-        let matrix = Self::from_coordinates(rows, cols, coordinates);
-
-        Ok(matrix)
+        Ok(Self::from_coordinates(rows, cols, coordinates))
     }
 
     /// Return the `row_ptr`.
@@ -286,6 +235,8 @@ mod tests {
 
     #[test]
     fn csr_diagonal_test() -> Result<(), Error> {
+        // 대각성분 찾기 기능 검증
+        // initialize test
         init();
 
         // case1: 대각 성분에 0 이 없을 경우
@@ -309,15 +260,51 @@ mod tests {
 
     #[test]
     fn csr_from_mtx_test() -> Result<(), Error> {
+        // MTX 포맷 읽기 기능 검증
+        // initialize test
         init();
+
         let path = "resources/mtx/3x3Test.mtx";
         let matrix = CSRMatrix::from_mtx(path)?;
 
         assert_eq!(matrix.rows, 3);
         assert_eq!(matrix.cols, 3);
         assert_eq!(matrix.row_ptr, vec![0, 2, 4, 7]);
+        assert_eq!(matrix.diag_ptr, Some(vec![0, 2, 6]));
         assert_eq!(matrix.col_indices, vec![0, 2, 1, 2, 0, 1, 2]);
         assert_eq!(matrix.values, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn csr_from_coordinate_test() -> Result<(), Error> {
+        // coordinate 배열로부터 생성된 CSRMatrix 검증
+        // initialize test
+        init();
+
+        let (rows, cols) = (3, 3);
+        let coordinates = vec![
+            (0, 0, 1.0),
+            (0, 2, 2.0),
+            (1, 1, 3.0),
+            (1, 2, 4.0),
+            (2, 0, 5.0),
+            (2, 1, 6.0),
+            (2, 2, 7.0),
+        ];
+
+        let M0 = CSRMatrix::from_coordinates(rows, cols, coordinates);
+        let M1 = CSRMatrix::from_args(CSRMatrixArgs {
+            rows,
+            cols,
+            row_ptr: vec![0, 2, 4, 7],
+            diag_ptr: Some(vec![0, 2, 6]),
+            col_indices: vec![0, 2, 1, 2, 0, 1, 2],
+            values: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+        });
+
+        assert_eq!(M0, M1);
 
         Ok(())
     }
