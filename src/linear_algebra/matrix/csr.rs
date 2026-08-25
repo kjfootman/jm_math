@@ -119,7 +119,7 @@ impl CSRMatrix {
         let (rows, cols, nnz) = loop {
             let line = lines
                 .next()
-                .ok_or_else(|| Error::ValueError("Empty file".into()))??;
+                .ok_or_else(|| Error::ValueError(format!("Empty file - {}", path)))??;
             let trimmed = line.trim();
 
             // 주석 및 공백 건너뛰기
@@ -144,6 +144,7 @@ impl CSRMatrix {
             }
         };
 
+        // 데이터 메모리 할당 (대칭 행렬일 경우 2배 메모리 할당)
         let mut coordinates = Vec::with_capacity(if is_symmetric { 2 * nnz } else { nnz });
 
         // 2. 데이터 읽기
