@@ -98,21 +98,28 @@ impl CSRMatrix {
         })
     }
 
-    /// Import a `CSRMatrix` from a MTX file and return it.
+    /// Imports a `CSRMatrix` from a Matrix Market (`.mtx`) file.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// * The file path cannot be opened.
+    /// * The file is empty or missing a valid header block.
+    /// * Any data row does not contain exactly 3 valid numbers.
+    /// * Parsing integers or floating-point values fails.
     pub fn from_mtx(path: &str) -> Result<Self, Error> {
         log::debug!("Import a CSRMatrix from '{path}'");
 
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
-        let lines = reader.lines();
+        let mut lines = reader.lines();
         let mut is_symmetric = false;
-        let mut rows = 0;
-        let mut cols = 0;
-        let mut nnz;
-        let mut coordinates = Vec::new();
 
-        for line in lines {
-            let line = line?;
+        // 1. 헤더 읽기
+        let (rows, cols, nnz) = loop {
+            let line = lines
+                .next()
+                .ok_or_else(|| Error::ValueError("Empty file".into()))??;
             let trimmed = line.trim();
 
             // 주석 및 공백 건너뛰기
@@ -124,32 +131,48 @@ impl CSRMatrix {
             }
 
             let mut tokens = trimmed.split_whitespace();
-            let mut next_token = |item| {
-                tokens
-                    .next()
-                    .ok_or_else(|| Error::ValueError(format!("Invalid format: missing {item}")))
-            };
+            if let (Some(r), Some(c), Some(n)) = (tokens.next(), tokens.next(), tokens.next()) {
+                let rows = r.parse::<usize>()?;
+                let cols = c.parse::<usize>()?;
+                let nnz = n.parse::<usize>()?;
 
-            // 헤더 파싱
-            if rows == 0 {
-                rows = next_token("rows")?.parse::<usize>()?;
-                cols = next_token("cols")?.parse::<usize>()?;
-                nnz = next_token("nnz")?.parse::<usize>()?;
+                break (rows, cols, nnz);
+            } else {
+                return Err(Error::ValueError(
+                    "The header format is not correct. (needed 3 columns)".into(),
+                ));
+            }
+        };
 
-                coordinates.reserve(nnz);
+        let mut coordinates = Vec::with_capacity(if is_symmetric { 2 * nnz } else { nnz });
 
-                log::debug!("rows: {rows} columns: {cols} nnz: {nnz}");
+        // 2. 데이터 읽기
+        for line in lines {
+            let line = line?;
+            let trimmed = line.trim();
+
+            // 주석 및 공백 건너뛰기
+            if trimmed.starts_with("%") || trimmed.is_empty() {
                 continue;
             }
 
-            let row = next_token("row")?.parse::<usize>()? - 1;
-            let col = next_token("col")?.parse::<usize>()? - 1;
-            let value = next_token("value")?.parse::<f64>()?;
+            let mut tokens = trimmed.split_whitespace();
 
-            coordinates.push((row, col, value));
+            if let (Some(r), Some(c), Some(v)) = (tokens.next(), tokens.next(), tokens.next()) {
+                let row = r.parse::<usize>()? - 1;
+                let col = c.parse::<usize>()? - 1;
+                let value = v.parse::<f64>()?;
 
-            if is_symmetric && row != col {
-                coordinates.push((col, row, value));
+                coordinates.push((row, col, value));
+
+                // 대칭 행렬 처리 (대각 성분이 아닐 때만 반대쪽 추가)
+                if is_symmetric && row != col {
+                    coordinates.push((col, row, value));
+                }
+            } else {
+                return Err(Error::ValueError(
+                    "The data row format is not correct. (needed 3 columns)".into(),
+                ));
             }
         }
 
