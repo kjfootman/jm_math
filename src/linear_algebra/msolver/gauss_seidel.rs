@@ -80,8 +80,6 @@ impl MSolver for GaussSeidel {
         let A = matrix;
         let ia = A.row_ptr();
         let ja = A.col_indices();
-        // TODO : CSRMatrix 필드에 추가
-        // let da = csr::find_diag_ptr(ia, ja)?;
         let da = A
             .diag_ptr()
             .ok_or_else(|| Error::ValueError("Diagonal pointer is not initialized".into()))?;
