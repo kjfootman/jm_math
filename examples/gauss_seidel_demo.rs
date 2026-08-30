@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use jm_lib::prelude::*;
+use std::time::Instant;
 
 fn main() -> Result<(), Error> {
     env_logger::builder().is_test(false).try_init()?;
@@ -11,6 +12,7 @@ fn main() -> Result<(), Error> {
         .with_tolerance(1E-12)
         .build();
 
+    let start = Instant::now();
     match gs.solve(&M, &b) {
         Ok(_) => {
             log::info!(
@@ -23,6 +25,7 @@ fn main() -> Result<(), Error> {
             log::error!("{e}");
         }
     }
+    log::info!("Elapsed time: {:.2} sec", start.elapsed().as_secs_f32());
 
     Ok(())
 }
