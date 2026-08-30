@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, csr},
 };
-use std::cell::RefCell;
+use std::{cell::RefCell, ops::DivAssign};
 
 #[derive(Debug)]
 pub struct GaussSeidel {
@@ -95,20 +95,30 @@ impl MSolver for GaussSeidel {
 
         // main iteration
         while *residual > tol && *iter < iter_max {
-            for i in 0..n {
-                let start = ia[i];
-                let end = ia[i + 1];
+            unsafe {
+                for i in 0..n {
+                    let start = *ia.get_unchecked(i);
+                    let end = *ia.get_unchecked(i + 1);
+                    let diag_idx = *da.get_unchecked(i);
 
-                let mut sum = b[i];
-                for j in start..da[i] {
-                    sum -= aa[j] * x[ja[j]];
+                    let mut sum = *b.get_unchecked(i);
+
+                    let aa_slice = aa.get_unchecked(start..diag_idx);
+                    let ja_slice = ja.get_unchecked(start..diag_idx);
+                    for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
+                        sum -= a_val * x.get_unchecked(col_idx);
+                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
+                    }
+
+                    let aa_slice = aa.get_unchecked(diag_idx + 1..end);
+                    let ja_slice = ja.get_unchecked(diag_idx + 1..end);
+                    for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
+                        sum -= a_val * x.get_unchecked(col_idx);
+                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
+                    }
+
+                    *x.get_unchecked_mut(i) = sum / *aa.get_unchecked(diag_idx);
                 }
-
-                for j in da[i] + 1..end {
-                    sum -= aa[j] * x[ja[j]];
-                }
-
-                x[i] = sum / aa[da[i]];
             }
 
             // calculate residual vector r - Ax
