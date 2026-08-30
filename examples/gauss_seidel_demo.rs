@@ -25,6 +25,7 @@ fn main() -> Result<(), Error> {
             log::error!("{e}");
         }
     }
+
     log::info!("Elapsed time: {:.2} sec", start.elapsed().as_secs_f32());
 
     Ok(())

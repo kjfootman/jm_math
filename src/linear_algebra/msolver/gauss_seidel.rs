@@ -106,15 +106,15 @@ impl MSolver for GaussSeidel {
                     let aa_slice = aa.get_unchecked(start..diag_idx);
                     let ja_slice = ja.get_unchecked(start..diag_idx);
                     for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
-                        // sum -= a_val * x.get_unchecked(col_idx);
-                        sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
+                        sum -= a_val * x.get_unchecked(col_idx);
+                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
                     }
 
                     let aa_slice = aa.get_unchecked(diag_idx + 1..end);
                     let ja_slice = ja.get_unchecked(diag_idx + 1..end);
                     for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
-                        // sum -= a_val * x.get_unchecked(col_idx);
-                        sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
+                        sum -= a_val * x.get_unchecked(col_idx);
+                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
                     }
 
                     *x.get_unchecked_mut(i) = sum / *aa.get_unchecked(diag_idx);
