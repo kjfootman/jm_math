@@ -13,6 +13,7 @@
 - [ ] ILU Preconditioner 개발
 - [ ] SOR(w) Preconditioner 개발
 
-- [ ] Gauss-Seidel 솔버 bound check 해제
+- [x] Gauss-Seidel 솔버 bound check 해제
+- [ ] SPMV 연산 bound check 해제
 
 - [ ] Level scheduling 기법 개발

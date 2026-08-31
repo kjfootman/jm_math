@@ -121,7 +121,7 @@ impl MSolver for GaussSeidel {
                 }
             }
 
-            // calculate residual vector r - Ax
+            // calculate residual vector r = b - Ax
             Ax.csr_spmv(matrix, &x)?;
             r.sub(b, &Ax)?;
             // relative calculate residual
