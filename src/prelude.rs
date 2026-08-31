@@ -1,2 +1,4 @@
 pub use crate::error::Error;
-pub use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, GaussSeidelBuilder, MSolver, Vector};
+pub use crate::linear_algebra::{
+    CSRMatrix, CSRMatrixArgs, GaussSeidelBuilder, MSolver, Matrix, Vector,
+};
