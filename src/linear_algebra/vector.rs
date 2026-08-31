@@ -168,16 +168,6 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg));
         }
 
-        // self.par_iter_mut().enumerate().for_each(|(i, v)| {
-        //     let start = ia[i];
-        //     let end = ia[i + 1];
-
-        //     *v = (start..end)
-        //         .into_iter()
-        //         .map(|j| aa[j] * vec[ja[j]])
-        //         .sum::<f64>();
-        // });
-
         let chunk_size = simd::calculate_chunk_size(m);
 
         self.par_chunks_mut(chunk_size)
@@ -193,6 +183,49 @@ impl Vector {
                         .into_iter()
                         .map(|j| aa[j] * vec[ja[j]])
                         .sum::<f64>();
+                });
+            });
+
+        Ok(())
+    }
+
+    pub fn csr_spmv2(&mut self, matrix: &CSRMatrix, vec: &Vector) -> Result<(), Error> {
+        let (m, n) = (matrix.rows(), matrix.cols());
+        let ia = matrix.row_ptr();
+        let ja = matrix.col_indices();
+        let aa = matrix.values();
+
+        if n != vec.len() {
+            let msg = format!(
+                "Dimension mismatch for SpMV (Columns of matrix: {}, length of vector: {})",
+                n,
+                vec.len()
+            );
+            error!("{msg}");
+            return Err(Error::DimensionMismatch(msg));
+        }
+
+        let chunk_size = simd::calculate_chunk_size(m);
+
+        self.par_chunks_mut(chunk_size)
+            .enumerate()
+            .for_each(|(chunk_idx, chunked_arr)| {
+                chunked_arr.iter_mut().enumerate().for_each(|(i, v)| {
+                    unsafe {
+                        // row index
+                        let global_i = chunk_idx * chunk_size + i;
+                        let start = *ia.get_unchecked(global_i);
+                        let end = *ia.get_unchecked(global_i + 1);
+
+                        let aa_slice = aa.get_unchecked(start..end);
+                        let ja_slice = ja.get_unchecked(start..end);
+
+                        *v = aa_slice
+                            .iter()
+                            .zip(ja_slice.iter())
+                            .map(|(&a_value, &col_idx)| a_value * vec.get_unchecked(col_idx))
+                            .sum::<f64>();
+                    }
                 });
             });
 
@@ -327,6 +360,7 @@ impl Neg for Vector {
 mod tests {
     use super::*;
     use crate::linear_algebra::CSRMatrixArgs;
+    use std::time::Instant;
     const N: usize = 2_500;
 
     fn init() {
@@ -479,6 +513,40 @@ mod tests {
         let v = Vector::from_mtx(path)?;
 
         assert_eq!(v.len(), 17281);
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_spmv_test() -> Result<(), Error> {
+        init();
+
+        let M = CSRMatrix::from_mtx("resources/mtx/e40r5000.mtx")?;
+        let v = Vector::from(vec![1.0; M.cols()]);
+        let mut result = Vector::new(M.cols());
+
+        let start = Instant::now();
+        for _ in 0..10 {
+            result.csr_spmv(&M, &v)?;
+        }
+        log::debug!("Elapsed Time: {:.2} ms", start.elapsed().as_nanos());
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_spmv_test2() -> Result<(), Error> {
+        init();
+
+        let M = CSRMatrix::from_mtx("resources/mtx/e40r5000.mtx")?;
+        let v = Vector::from(vec![1.0; M.cols()]);
+        let mut result = Vector::new(M.cols());
+
+        let start = Instant::now();
+        for _ in 0..10 {
+            result.csr_spmv2(&M, &v)?;
+        }
+        log::debug!("Elapsed Time: {:.2} ms", start.elapsed().as_nanos());
 
         Ok(())
     }
