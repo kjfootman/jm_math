@@ -7,12 +7,12 @@ fn main() {
     divan::main();
 }
 
-#[divan::bench(sample_count = 10, sample_size = 2)]
-fn spmv_bench(bencher: Bencher) {
+#[divan::bench(sample_count = 20, sample_size = 5, args=["resources/mtx/e40r5000.mtx", "resources/mtx/bcsstk18.mtx"])]
+fn spmv_bench(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
             // let path = "resources/mtx/e40r5000.mtx";
-            let path = "resources/mtx/bcsstk18.mtx";
+            // let path = "resources/mtx/bcsstk18.mtx";
             let M = CSRMatrix::from_mtx(path).unwrap();
             let v = Vector::from(vec![1.0; M.cols()]);
             let result = Vector::new(M.cols());
@@ -24,12 +24,12 @@ fn spmv_bench(bencher: Bencher) {
         });
 }
 
-#[divan::bench(sample_count = 10, sample_size = 2)]
-fn spmv2_bench(bencher: Bencher) {
+#[divan::bench(sample_count = 20, sample_size = 5, args=["resources/mtx/e40r5000.mtx", "resources/mtx/bcsstk18.mtx"])]
+fn spmv2_bench(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
             // let path = "resources/mtx/e40r5000.mtx";
-            let path = "resources/mtx/bcsstk18.mtx";
+            // let path = "resources/mtx/bcsstk18.mtx";
             let M = CSRMatrix::from_mtx(path).unwrap();
             let v = Vector::from(vec![1.0; M.cols()]);
             let result = Vector::new(M.cols());

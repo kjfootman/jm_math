@@ -181,7 +181,7 @@ impl Vector {
 
                     *v = (start..end)
                         .into_iter()
-                        .map(|j| aa[j] * vec[ja[j]])
+                        .map(|j| aa[j as usize] * vec[ja[j as usize] as usize])
                         .sum::<f64>();
                 });
             });
@@ -214,8 +214,8 @@ impl Vector {
                     unsafe {
                         // row index
                         let global_i = chunk_idx * chunk_size + i;
-                        let start = *ia.get_unchecked(global_i);
-                        let end = *ia.get_unchecked(global_i + 1);
+                        let start = *ia.get_unchecked(global_i) as usize;
+                        let end = *ia.get_unchecked(global_i + 1) as usize;
 
                         let aa_slice = aa.get_unchecked(start..end);
                         let ja_slice = ja.get_unchecked(start..end);
@@ -223,7 +223,9 @@ impl Vector {
                         *v = aa_slice
                             .iter()
                             .zip(ja_slice.iter())
-                            .map(|(&a_value, &col_idx)| a_value * vec.get_unchecked(col_idx))
+                            .map(|(&a_value, &col_idx)| {
+                                a_value * vec.get_unchecked(col_idx as usize)
+                            })
                             .sum::<f64>();
                     }
                 });
@@ -465,7 +467,7 @@ mod tests {
     #[test]
     fn vector_csr_spmxv_test() -> Result<(), Error> {
         let (rows, cols) = (5, 5);
-        let row_ptr = vec![0, 2, 5, 9, 11, 12];
+        let row_ptr = vec![0u32, 2, 5, 9, 11, 12];
         let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
         let values = vec![
             1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
@@ -474,7 +476,7 @@ mod tests {
         // 행렬의 각 행 요소 합
         let row_sum_vec: Vec<f64> = row_ptr
             .windows(2)
-            .map(|range| values[range[0]..range[1]].iter().sum())
+            .map(|range| values[range[0] as usize..range[1] as usize].iter().sum())
             .collect();
         let row_sum_vec = Vector::from(row_sum_vec);
 
