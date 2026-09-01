@@ -13,9 +13,9 @@ thiserror = "2.0.18"
 divan = "0.1.21"
 env_logger = "0.11.11"
 
-[[bench]]
-name = "example"
-harness = false
+# [[bench]]
+# name = "example"
+# harness = false
 
 [[bench]]
 name = "csr"

@@ -5,6 +5,8 @@
 - [x] CSRMatrix에 diag_ptr 필드 추가
 - [x] CSRMatrix에 with_diag_ptr 매소드 개발
 - [x] Simple coordinate로부터 CSRMatrix 생성 -> CSRMatrix::from_coo
+- [ ] CSRMatrix row_ptr, col_indices, diag_ptr Vec<u32> 타입으로 수정
+- [ ] DenseMatrix 개발
 
 - [ ] SOR(w) 솔버 개발
 - [ ] GMRES 솔버 개발
