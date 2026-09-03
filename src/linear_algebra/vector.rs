@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use std::io::BufRead;
 use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Vector {
     values: Vec<f64>,
 }

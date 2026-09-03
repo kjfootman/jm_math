@@ -7,7 +7,7 @@ fn main() -> Result<(), Error> {
 
     let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
     let b = get_source(&M);
-    let gs = GaussSeidelBuilder::new()
+    let mut gs = GaussSeidelBuilder::new()
         .with_max_iter(5000)
         .with_tolerance(1E-12)
         .build();
