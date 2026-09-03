@@ -1,8 +1,8 @@
 use crate::{
     error::Error,
-    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, csr},
+    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector},
 };
-use std::{cell::RefCell, ops::DivAssign};
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct GaussSeidel {
@@ -12,6 +12,7 @@ pub struct GaussSeidel {
     iter: RefCell<usize>,
 }
 
+#[derive(Default)]
 pub struct GaussSeidelBuilder {
     tolerance: Option<f64>,
     iter_max: Option<usize>,
@@ -142,7 +143,7 @@ impl MSolver for GaussSeidel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::CSRMatrixArgs;
+    use crate::linear_algebra::{CSRMatrixArgs, csr};
 
     #[test]
     fn gauss_seidel_test() -> Result<(), Error> {
