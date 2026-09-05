@@ -89,8 +89,7 @@ impl GaussSeidelBuilder {
 
 impl MSolver for GaussSeidel {
     /// Solves the systems of euqations with Gauss-Seidel method.
-    // TODO: x를 inplace 방식으로 변경 --> 외부 변수 x에 해를 업데이트 --> 초기 값으로도 사용 가능
-    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector) -> Result<Vector, Error> {
+    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector, x: &mut Vector) -> Result<(), Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
@@ -106,25 +105,15 @@ impl MSolver for GaussSeidel {
             .diag_ptr()
             .ok_or_else(|| Error::ValueError("Diagonal pointer is not initialized".into()))?;
         let aa = A.values();
-        let mut x = Vector::new(n);
 
-        // -------------------------------------------------------------------//
-        // Workspace 테스트
         let workspace = &mut self.workspace;
         workspace.set_workspace(m);
 
         let Ax = &mut workspace.Ax;
         let r = &mut workspace.r;
 
-        Ax.csr_spmv(matrix, &x)?;
-        r.csr_spmv(matrix, &x)?;
-        // -------------------------------------------------------------------//
-
-        // calculate residual vector r - Ax
-        // Ax.csr_spmv(matrix, &x)?;
-        // r.sub(b, &Ax)?;
-        // relative calculate residual
-        // *residual = r.magnitude()?.abs() / b_mag;
+        Ax.csr_spmv(matrix, x)?;
+        r.csr_spmv(matrix, x)?;
 
         // main iteration
         while *residual > tol && *iter < iter_max {
@@ -168,7 +157,7 @@ impl MSolver for GaussSeidel {
             }
         }
 
-        Ok(x)
+        Ok(())
     }
 }
 
@@ -199,8 +188,8 @@ mod tests {
             .with_max_iter(50)
             .with_tolerance(1E-7)
             .build();
-
-        let x = gs.solve(&M, &b)?;
+        let mut x = Vector::new(rows);
+        gs.solve(&M, &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
