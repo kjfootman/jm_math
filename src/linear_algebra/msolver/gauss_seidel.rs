@@ -6,10 +6,11 @@ use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct GaussSeidel {
-    residual: RefCell<f64>,
+    residual: f64,
     tolerance: f64,
     iter_max: usize,
-    iter: RefCell<usize>,
+    iter: usize,
+    workspace: Workspace,
 }
 
 #[derive(Default)]
@@ -18,23 +19,44 @@ pub struct GaussSeidelBuilder {
     iter_max: Option<usize>,
 }
 
+// Gauss-Seidel 중간 계산 결과 저장을 위한 변수
+// TODO: Debug 트레이트 구현
+#[derive(Debug, Default)]
+struct Workspace {
+    pub Ax: Vector,
+    pub r: Vector,
+}
+
+impl Workspace {
+    pub fn set_workspace(&mut self, size: usize) {
+        if self.Ax.len() < size {
+            self.Ax.resize(size, 0.0);
+        }
+
+        if self.r.len() < size {
+            self.r.resize(size, 0.0);
+        }
+    }
+}
+
 impl GaussSeidel {
     pub fn iter(&self) -> usize {
-        self.iter.take()
+        self.iter
     }
 
     pub fn residual(&self) -> f64 {
-        self.residual.take()
+        self.residual
     }
 }
 
 impl Default for GaussSeidel {
     fn default() -> Self {
         GaussSeidel {
-            residual: RefCell::new(f64::MAX),
+            residual: f64::MAX,
             tolerance: 1E-7,
             iter_max: 500,
-            iter: RefCell::new(0),
+            iter: 0,
+            workspace: Workspace::default(),
         }
     }
 }
@@ -68,15 +90,15 @@ impl GaussSeidelBuilder {
 
 impl MSolver for GaussSeidel {
     /// Solves the systems of euqations with Gauss-Seidel method.
-    fn solve(&self, matrix: &CSRMatrix, b: &Vector) -> Result<Vector, Error> {
+    // TODO: x를 inplace 방식으로 변경 --> 외부 변수 x에 해를 업데이트 --> 초기 값으로도 사용 가능
+    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector) -> Result<Vector, Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
-        let mut iter = self.iter.borrow_mut();
-        let mut residual = self.residual.borrow_mut();
+        let iter = &mut self.iter;
+        let residual = &mut self.residual;
         let tol = self.tolerance;
         let iter_max = self.iter_max;
 
         let b_mag = b.magnitude()?;
-        let mut Ax = Vector::new(n);
 
         let A = matrix;
         let ia = A.row_ptr();
@@ -86,13 +108,24 @@ impl MSolver for GaussSeidel {
             .ok_or_else(|| Error::ValueError("Diagonal pointer is not initialized".into()))?;
         let aa = A.values();
         let mut x = Vector::new(n);
-        let mut r = Vector::new(n);
+
+        // -------------------------------------------------------------------//
+        // Workspace 테스트
+        let workspace = &mut self.workspace;
+        workspace.set_workspace(m);
+
+        let Ax = &mut workspace.Ax;
+        let r = &mut workspace.r;
+
+        Ax.csr_spmv(matrix, &x)?;
+        r.csr_spmv(matrix, &x)?;
+        // -------------------------------------------------------------------//
 
         // calculate residual vector r - Ax
-        Ax.csr_spmv(matrix, &x)?;
-        r.sub(b, &Ax)?;
+        // Ax.csr_spmv(matrix, &x)?;
+        // r.sub(b, &Ax)?;
         // relative calculate residual
-        *residual = r.magnitude()?.abs() / b_mag;
+        // *residual = r.magnitude()?.abs() / b_mag;
 
         // main iteration
         while *residual > tol && *iter < iter_max {
@@ -163,7 +196,7 @@ mod tests {
         });
         let b = Vector::from(vec![6.0, 15.0, 15.0, 9.0]);
 
-        let gs = GaussSeidelBuilder::new()
+        let mut gs = GaussSeidelBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
             .build();
