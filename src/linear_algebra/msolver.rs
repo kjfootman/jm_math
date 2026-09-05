@@ -6,5 +6,5 @@ use crate::linear_algebra::{CSRMatrix, Vector};
 pub use gauss_seidel::{GaussSeidel, GaussSeidelBuilder};
 
 pub trait MSolver {
-    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector) -> Result<Vector, Error>;
+    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector, x: &mut Vector) -> Result<(), Error>;
 }

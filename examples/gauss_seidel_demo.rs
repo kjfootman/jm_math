@@ -11,9 +11,10 @@ fn main() -> Result<(), Error> {
         .with_max_iter(5000)
         .with_tolerance(1E-12)
         .build();
+    let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
-    match gs.solve(&M, &b) {
+    match gs.solve(&M, &b, &mut x) {
         Ok(_) => {
             log::info!(
                 "Converged - iteration: {} - residual: {:.2E}",
