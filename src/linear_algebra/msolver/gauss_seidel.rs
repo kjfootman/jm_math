@@ -33,7 +33,7 @@ impl Workspace {
         }
 
         if self.r.len() < size {
-            self.Ax.resize(size, 0.0);
+            self.r.resize(size, 0.0);
         }
     }
 }
@@ -90,7 +90,6 @@ impl GaussSeidelBuilder {
 impl MSolver for GaussSeidel {
     /// Solves the systems of euqations with Gauss-Seidel method.
     // TODO: x를 inplace 방식으로 변경 --> 외부 변수 x에 해를 업데이트 --> 초기 값으로도 사용 가능
-    // TODO: Workspace 패턴 완성 --> Ax, r
     fn solve(&mut self, matrix: &CSRMatrix, b: &Vector) -> Result<Vector, Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
         let iter = &mut self.iter;
@@ -99,7 +98,6 @@ impl MSolver for GaussSeidel {
         let iter_max = self.iter_max;
 
         let b_mag = b.magnitude()?;
-        let mut Ax = Vector::new(n);
 
         let A = matrix;
         let ia = A.row_ptr();
@@ -109,18 +107,17 @@ impl MSolver for GaussSeidel {
             .ok_or_else(|| Error::ValueError("Diagonal pointer is not initialized".into()))?;
         let aa = A.values();
         let mut x = Vector::new(n);
-        let mut r = Vector::new(n);
 
         // -------------------------------------------------------------------//
         // Workspace 테스트
         let workspace = &mut self.workspace;
         workspace.set_workspace(m);
 
-        let tmp_a = &mut workspace.Ax;
-        let tmp_b = &mut workspace.r;
+        let Ax = &mut workspace.Ax;
+        let r = &mut workspace.r;
 
-        tmp_a.csr_spmv(matrix, &x)?;
-        tmp_b.csr_spmv(matrix, &x)?;
+        Ax.csr_spmv(matrix, &x)?;
+        r.csr_spmv(matrix, &x)?;
         // -------------------------------------------------------------------//
 
         // calculate residual vector r - Ax
