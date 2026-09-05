@@ -38,8 +38,8 @@ fn get_source(M: &CSRMatrix) -> Vector {
     let arr = ia
         .windows(2)
         .map(|range| {
-            let start = range[0];
-            let end = range[1];
+            let start = range[0] as usize;
+            let end = range[1] as usize;
 
             aa[start..end].iter().sum::<f64>()
         })

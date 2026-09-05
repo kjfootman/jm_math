@@ -3,6 +3,12 @@ name = "jm_lib"
 version = "0.1.0"
 edition = "2024"
 
+# [profile.bench]
+# opt-level = 3
+# lto = "fat"           # 링크 타임 최적화 (인라인화 및 불필요 코드 제거 극대화)
+# codegen-units = 1     # 단일 코드로 컴파일하여 전체 최적화 기회 확보
+# panic = "abort"       # 패닉 스택 언와인딩 오버헤드 제거
+
 [dependencies]
 log = "0.4.33"
 pulp = "0.22.3"

@@ -3,7 +3,7 @@ use crate::{error::Error, linear_algebra::simd};
 use rayon::prelude::*;
 use std::{
     io::BufRead,
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::atomic::{AtomicU32, Ordering},
 };
 
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/jm_lib/linear_algebra/matrix/csr.md"))]
@@ -12,9 +12,9 @@ use std::{
 pub struct CSRMatrix {
     rows: usize,
     cols: usize,
-    row_ptr: Vec<usize>,
-    diag_ptr: Option<Vec<usize>>,
-    col_indices: Vec<usize>,
+    row_ptr: Vec<u32>,
+    diag_ptr: Option<Vec<u32>>,
+    col_indices: Vec<u32>,
     values: Vec<f64>,
 }
 
@@ -22,9 +22,9 @@ pub struct CSRMatrix {
 pub struct CSRMatrixArgs {
     pub rows: usize,
     pub cols: usize,
-    pub row_ptr: Vec<usize>,
-    pub diag_ptr: Option<Vec<usize>>,
-    pub col_indices: Vec<usize>,
+    pub row_ptr: Vec<u32>,
+    pub diag_ptr: Option<Vec<u32>>,
+    pub col_indices: Vec<u32>,
     pub values: Vec<f64>,
 }
 
@@ -45,7 +45,7 @@ impl CSRMatrix {
     pub fn from_coordinates(
         rows: usize,
         cols: usize,
-        mut coordinates: Vec<(usize, usize, f64)>,
+        mut coordinates: Vec<(u32, u32, f64)>,
     ) -> CSRMatrix {
         let mut sum = 0;
         //
@@ -60,16 +60,14 @@ impl CSRMatrix {
             .unzip();
 
         // 2. row_ptr 배열 세팅
-        let row_ptr_atomic = (0..rows + 1)
-            .map(|_| AtomicUsize::new(0))
-            .collect::<Vec<_>>();
+        let row_ptr_atomic = (0..rows + 1).map(|_| AtomicU32::new(0)).collect::<Vec<_>>();
 
         // 2.1 행 별로 nnz 카운트 ->
         coordinates
             .par_chunk_by(|a, b| a.0 == b.0)
             .for_each(|chunk| {
                 if let Some(&(row, _, _)) = chunk.first() {
-                    row_ptr_atomic[row + 1].store(chunk.len(), Ordering::Relaxed);
+                    row_ptr_atomic[row as usize + 1].store(chunk.len() as u32, Ordering::Relaxed);
                 }
             });
 
@@ -160,8 +158,8 @@ impl CSRMatrix {
             let mut tokens = trimmed.split_whitespace();
 
             if let (Some(r), Some(c), Some(v)) = (tokens.next(), tokens.next(), tokens.next()) {
-                let row = r.parse::<usize>()? - 1;
-                let col = c.parse::<usize>()? - 1;
+                let row = r.parse::<u32>()? - 1;
+                let col = c.parse::<u32>()? - 1;
                 let value = v.parse::<f64>()?;
 
                 coordinates.push((row, col, value));
@@ -181,17 +179,17 @@ impl CSRMatrix {
     }
 
     /// Return the `row_ptr`.
-    pub fn row_ptr(&self) -> &[usize] {
+    pub fn row_ptr(&self) -> &[u32] {
         &self.row_ptr
     }
 
     /// Return the `col_indices`.
-    pub fn col_indices(&self) -> &[usize] {
+    pub fn col_indices(&self) -> &[u32] {
         &self.col_indices
     }
 
     /// Return the `diag_ptr`.
-    pub fn diag_ptr(&self) -> Option<&[usize]> {
+    pub fn diag_ptr(&self) -> Option<&[u32]> {
         self.diag_ptr.as_deref()
     }
 
@@ -201,7 +199,7 @@ impl CSRMatrix {
     }
 
     /// Set the `diag_ptr` of a `CSRMatrix`.
-    pub fn with_diag_ptr(mut self, diag_ptr: Vec<usize>) -> Self {
+    pub fn with_diag_ptr(mut self, diag_ptr: Vec<u32>) -> Self {
         if self.diag_ptr().is_none() {
             self.diag_ptr = Some(diag_ptr)
         }
@@ -221,7 +219,7 @@ impl Matrix for CSRMatrix {
 }
 
 /// Returns pointers to the diagonal elements.
-pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usize>, Error> {
+pub fn find_diag_ptr(row_ptr: &[u32], col_indices: &[u32]) -> Result<Vec<u32>, Error> {
     let m = row_ptr.len() - 1;
     let chunk_size = simd::calculate_chunk_size(m);
     let mut diag_ptr = vec![0; m];
@@ -232,15 +230,15 @@ pub fn find_diag_ptr(row_ptr: &[usize], col_indices: &[usize]) -> Result<Vec<usi
         .try_for_each(|(chunk_idx, chunk)| {
             for (i, diag) in chunk.iter_mut().enumerate() {
                 let global_i = chunk_idx * chunk_size + i;
-                let start = row_ptr[global_i];
-                let end = row_ptr[global_i + 1];
+                let start = row_ptr[global_i] as usize;
+                let end = row_ptr[global_i + 1] as usize;
 
                 // global_i 와 동일한 열 인덱스 찾기
                 let col_idx = col_indices[start..end]
-                    .binary_search(&global_i)
+                    .binary_search(&(global_i as u32))
                     .map_err(|_| Error::MissingDiagonal(global_i))?;
 
-                *diag = start + col_idx;
+                *diag = (start + col_idx) as u32;
             }
 
             Ok::<(), Error>(())

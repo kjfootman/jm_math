@@ -1,8 +1,8 @@
 use crate::{
     error::Error,
-    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, csr},
+    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector},
 };
-use std::{cell::RefCell, ops::DivAssign};
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct GaussSeidel {
@@ -12,6 +12,7 @@ pub struct GaussSeidel {
     iter: RefCell<usize>,
 }
 
+#[derive(Default)]
 pub struct GaussSeidelBuilder {
     tolerance: Option<f64>,
     iter_max: Option<usize>,
@@ -97,23 +98,23 @@ impl MSolver for GaussSeidel {
         while *residual > tol && *iter < iter_max {
             unsafe {
                 for i in 0..n {
-                    let start = *ia.get_unchecked(i);
-                    let end = *ia.get_unchecked(i + 1);
-                    let diag_idx = *da.get_unchecked(i);
+                    let start = *ia.get_unchecked(i) as usize;
+                    let end = *ia.get_unchecked(i + 1) as usize;
+                    let diag_idx = *da.get_unchecked(i) as usize;
 
                     let mut sum = *b.get_unchecked(i);
 
                     let aa_slice = aa.get_unchecked(start..diag_idx);
                     let ja_slice = ja.get_unchecked(start..diag_idx);
                     for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
-                        sum -= a_val * x.get_unchecked(col_idx);
+                        sum -= a_val * x.get_unchecked(col_idx as usize);
                         // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
                     }
 
                     let aa_slice = aa.get_unchecked(diag_idx + 1..end);
                     let ja_slice = ja.get_unchecked(diag_idx + 1..end);
                     for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
-                        sum -= a_val * x.get_unchecked(col_idx);
+                        sum -= a_val * x.get_unchecked(col_idx as usize);
                         // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
                     }
 
@@ -142,7 +143,7 @@ impl MSolver for GaussSeidel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::CSRMatrixArgs;
+    use crate::linear_algebra::{CSRMatrixArgs, csr};
 
     #[test]
     fn gauss_seidel_test() -> Result<(), Error> {
