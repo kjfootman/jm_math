@@ -2,7 +2,6 @@ use crate::{
     error::Error,
     linear_algebra::{CSRMatrix, MSolver, Matrix, Vector},
 };
-use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct GaussSeidel {
@@ -23,15 +22,15 @@ pub struct GaussSeidelBuilder {
 // TODO: Debug 트레이트 구현
 #[derive(Debug, Default)]
 struct Workspace {
-    pub Ax: Vector,
+    // pub Ax: Vector,
     pub r: Vector,
 }
 
 impl Workspace {
     pub fn set_workspace(&mut self, size: usize) {
-        if self.Ax.len() < size {
-            self.Ax.resize(size, 0.0);
-        }
+        // if self.Ax.len() < size {
+        //     self.Ax.resize(size, 0.0);
+        // }
 
         if self.r.len() < size {
             self.r.resize(size, 0.0);
@@ -110,11 +109,11 @@ impl MSolver for GaussSeidel {
         let workspace = &mut self.workspace;
         workspace.set_workspace(m);
 
-        let Ax = &mut workspace.Ax;
+        // let Ax = &mut workspace.Ax;
         let r = &mut workspace.r;
 
-        Ax.csr_spmv(matrix, x)?;
-        r.csr_spmv(matrix, x)?;
+        // Ax.csr_spmv(matrix, x)?;
+        // r.csr_spmv(matrix, x)?;
 
         // main iteration
         while *residual > tol && *iter < iter_max {
@@ -130,14 +129,14 @@ impl MSolver for GaussSeidel {
                     let ja_slice = ja.get_unchecked(start..diag_idx);
                     for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
                         sum -= a_val * x.get_unchecked(col_idx as usize);
-                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
+                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx as usize), sum);
                     }
 
                     let aa_slice = aa.get_unchecked(diag_idx + 1..end);
                     let ja_slice = ja.get_unchecked(diag_idx + 1..end);
                     for (&a_val, &col_idx) in aa_slice.iter().zip(ja_slice.iter()) {
                         sum -= a_val * x.get_unchecked(col_idx as usize);
-                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx), sum);
+                        // sum = (-a_val).mul_add(*x.get_unchecked(col_idx as usize), sum);
                     }
 
                     *x.get_unchecked_mut(i) = sum / *aa.get_unchecked(diag_idx);
@@ -145,8 +144,14 @@ impl MSolver for GaussSeidel {
             }
 
             // calculate residual vector r = b - Ax
-            Ax.csr_spmv(matrix, &x)?;
-            r.sub(b, &Ax)?;
+            // Ax.csr_spmv(matrix, x)?;
+            // Ax.csr_spmv2(matrix, x)?;
+            // r.sub(b, Ax)?;
+
+            // calculate minus residual vector r = Ax - b
+            r.csr_spmv2(matrix, x)?;
+            r.sub_assign(b)?;
+
             // relative calculate residual
             *residual = r.magnitude()?.abs() / b_mag;
 
