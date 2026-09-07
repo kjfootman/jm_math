@@ -38,15 +38,15 @@ impl Workspace {
     }
 }
 
-impl GaussSeidel {
-    pub fn iter(&self) -> usize {
-        self.iter
-    }
+// impl GaussSeidel {
+//     pub fn iter(&self) -> usize {
+//         self.iter
+//     }
 
-    pub fn residual(&self) -> f64 {
-        self.residual
-    }
-}
+//     pub fn residual(&self) -> f64 {
+//         self.residual
+//     }
+// }
 
 impl Default for GaussSeidel {
     fn default() -> Self {
@@ -88,6 +88,14 @@ impl GaussSeidelBuilder {
 }
 
 impl MSolver for GaussSeidel {
+    fn iter(&self) -> usize {
+        self.iter
+    }
+
+    fn residual(&self) -> f64 {
+        self.residual
+    }
+
     /// Solves the systems of euqations with Gauss-Seidel method.
     fn solve(&mut self, matrix: &CSRMatrix, b: &Vector, x: &mut Vector) -> Result<(), Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
