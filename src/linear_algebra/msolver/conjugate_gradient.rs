@@ -14,6 +14,7 @@ pub struct ConjugateGradient {
 
 #[derive(Debug, Default)]
 struct Workspace {
+    pub Ap: Vector,
     pub p: Vector,
     pub r: Vector,
 }
@@ -52,6 +53,11 @@ impl MSolver for ConjugateGradient {
 
         let workspace = &mut self.workspace;
         workspace.set_workspace(m);
+
+        let p = &mut workspace.p;
+
+        // p0 = r0
+        p.csr_spmv2(A, x)?;
 
         todo!()
     }
