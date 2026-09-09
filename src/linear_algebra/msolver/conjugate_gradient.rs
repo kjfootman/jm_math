@@ -54,11 +54,36 @@ impl MSolver for ConjugateGradient {
         let workspace = &mut self.workspace;
         workspace.set_workspace(m);
 
-        let p = &mut workspace.p;
+        let Ap = &mut workspace.Ap;
+        let r = &mut workspace.r;
+        let mut p;
+
+        // 1. calculate r0 = b - Ax0
+        // 1.1 Ap = A * x0
+        Ap.csr_spmv2(A, x)?;
+        // 1.2 r0 = b - Ap = b - A * x0
+        r.sub(b, Ap)?;
 
         // p0 = r0
-        p.csr_spmv2(A, x)?;
+        p = &mut *r;
 
-        todo!()
+        while *residual > tol && *iter < max_iter {
+            *iter += 1;
+        }
+
+        p = &mut workspace.p;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::linear_algebra::{CSRMatrix, csr};
+
+    #[test]
+    fn conjugate_gradient_test() -> Result<(), Error> {
+        Ok(())
     }
 }
