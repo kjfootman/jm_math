@@ -40,3 +40,19 @@ fn spmv2_bench(bencher: Bencher, path: &str) {
             result.csr_spmv2(&M, &v).unwrap();
         });
 }
+
+#[divan::bench(args=[20_000, 40_000, 80_000])]
+fn dot_product_bench(bencher: Bencher, N: usize) {
+    bencher
+        .with_inputs(|| {
+            // const N: usize = 30_000;
+            let v1 = Vector::from(vec![1.0; N]);
+            let v2 = Vector::from(vec![1.0; N]);
+
+            (N, v1, v2)
+        })
+        .bench_values(|(N, v1, v2)| {
+            let result = v1.dot(&v2).unwrap();
+            assert_eq!(N as f64, result);
+        });
+}
