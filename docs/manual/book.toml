@@ -2,3 +2,6 @@
 title = "User Manual for jm_lib"
 authors = ["J. Kim"]
 language = "en"
+
+[build]
+extra-watch-dirs = ["resources"]

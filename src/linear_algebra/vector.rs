@@ -141,13 +141,20 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
 
-        let result = self
-            .par_chunks(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .map(|(a, b)| arch.dispatch(simd::VectorDot(a, b)))
-            .sum::<f64>();
+        // 멀티 스레드 오버헤드 발생
+        // let chunk_size = simd::calculate_chunk_size(len);
+        // let result = self
+        //     .par_chunks(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .map(|(a, b)| arch.dispatch(simd::VectorDot(a, b)))
+        //     .sum::<f64>();
+
+        // 방법.2
+        // let result = self.iter().zip(vec).map(|(a, b)| a * b).sum::<f64>();
+
+        // 방법.3
+        let result = arch.dispatch(simd::VectorDot(self, vec));
 
         Ok(result)
     }
