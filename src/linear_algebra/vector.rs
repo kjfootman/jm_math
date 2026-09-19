@@ -30,14 +30,18 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(a.par_chunks(chunk_size))
-            .zip(b.par_chunks(chunk_size))
-            .for_each(|((out, a), b)| {
-                arch.dispatch(simd::VectorAdd(out, a, b));
-            });
+        // 방법.1
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(a.par_chunks(chunk_size))
+        //     .zip(b.par_chunks(chunk_size))
+        //     .for_each(|((out, a), b)| {
+        //         arch.dispatch(simd::VectorAdd(out, a, b));
+        //     });
+
+        // 방법.2
+        arch.dispatch(simd::VectorAdd(self, a, b));
 
         Ok(())
     }
@@ -52,13 +56,15 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorAddAssign(out, vec));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .for_each(|(out, vec)| {
+        //         arch.dispatch(simd::VectorAddAssign(out, vec));
+        //     });
+
+        arch.dispatch(simd::VectorAddAssign(self, vec));
 
         Ok(())
     }
@@ -73,14 +79,16 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(a.par_chunks(chunk_size))
-            .zip(b.par_chunks(chunk_size))
-            .for_each(|((out, a), b)| {
-                arch.dispatch(simd::VectorSub(out, a, b));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(a.par_chunks(chunk_size))
+        //     .zip(b.par_chunks(chunk_size))
+        //     .for_each(|((out, a), b)| {
+        //         arch.dispatch(simd::VectorSub(out, a, b));
+        //     });
+
+        arch.dispatch(simd::VectorSub(self, a, b));
 
         Ok(())
     }
@@ -95,39 +103,45 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorSubAssign(out, vec));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .for_each(|(out, vec)| {
+        //         arch.dispatch(simd::VectorSubAssign(out, vec));
+        //     });
+
+        arch.dispatch(simd::VectorSubAssign(self, vec));
 
         Ok(())
     }
 
     pub fn scale(&mut self, scale: f64, vec: &[f64]) {
-        let len = self.len();
+        // let len = self.len();
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorScale(out, scale, vec));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .for_each(|(out, vec)| {
+        //         arch.dispatch(simd::VectorScale(out, scale, vec));
+        //     });
+
+        arch.dispatch(simd::VectorScale(self, scale, vec));
     }
 
     pub fn scale_assign(&mut self, scale: f64) {
-        let len = self.len();
+        // let len = self.len();
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size).for_each(|out| {
-            arch.dispatch(simd::VectorScaleAssign(out, scale));
-        });
+        // self.par_chunks_mut(chunk_size).for_each(|out| {
+        //     arch.dispatch(simd::VectorScaleAssign(out, scale));
+        // });
+
+        arch.dispatch(simd::VectorScaleAssign(self, scale));
     }
 
     pub fn dot(&self, vec: &[f64]) -> Result<f64, Error> {
@@ -242,12 +256,14 @@ impl Vector {
     }
 
     pub fn neg_assign(&mut self) {
-        let len = self.len();
+        // let len = self.len();
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
+        // self.par_chunks_mut(chunk_size)
+        //     .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
+
+        arch.dispatch(simd::VectorNeg(self));
     }
 
     pub fn magnitude(&self) -> Result<f64, Error> {

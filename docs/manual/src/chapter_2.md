@@ -4,6 +4,8 @@ divan 크레이트를 사용하여 벤치 테스트 진행
 
 ## Vector dot product
 
+
+
 ### method.1
 
 멀티 스레드 + SIMD

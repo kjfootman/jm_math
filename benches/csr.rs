@@ -42,10 +42,9 @@ fn spmv2_bench(bencher: Bencher, path: &str) {
 }
 
 #[divan::bench(args=[20_000, 40_000, 80_000])]
-fn dot_product_bench(bencher: Bencher, N: usize) {
+fn vector_dot_product_bench(bencher: Bencher, N: usize) {
     bencher
         .with_inputs(|| {
-            // const N: usize = 30_000;
             let v1 = Vector::from(vec![1.0; N]);
             let v2 = Vector::from(vec![1.0; N]);
 
@@ -54,5 +53,21 @@ fn dot_product_bench(bencher: Bencher, N: usize) {
         .bench_values(|(N, v1, v2)| {
             let result = v1.dot(&v2).unwrap();
             assert_eq!(N as f64, result);
+        });
+}
+
+#[divan::bench(args=[20_000, 40_000, 80_000])]
+fn vector_add_bench(bencher: Bencher, N: usize) {
+    bencher
+        .with_inputs(|| {
+            // const N: usize = 30_000;
+            let v1 = Vector::from(vec![1.0; N]);
+            let v2 = Vector::from(vec![1.0; N]);
+            let out = Vector::from(vec![0.0; N]);
+
+            (v1, v2, out)
+        })
+        .bench_values(|(v1, v2, mut out)| {
+            out.add(&v1, &v2).unwrap();
         });
 }
