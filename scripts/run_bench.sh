@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # TEST_NAME="dot_product_bench"
-TEST_NAME="vector"
+# TEST_NAME="vector"
+TEST_NAME="vector_calc_residual"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
