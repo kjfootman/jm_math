@@ -7,6 +7,23 @@ fn main() {
     divan::main();
 }
 
+fn get_source(M: &CSRMatrix) -> Vector {
+    let ia = M.row_ptr();
+    let aa = M.values();
+
+    let arr = ia
+        .windows(2)
+        .map(|range| {
+            let start = range[0] as usize;
+            let end = range[1] as usize;
+
+            aa[start..end].iter().sum::<f64>()
+        })
+        .collect::<Vec<_>>();
+
+    Vector::from(arr)
+}
+
 #[divan::bench(sample_count = 20, sample_size = 5, args=["resources/mtx/e40r5000.mtx", "resources/mtx/bcsstk18.mtx"])]
 fn spmv_bench(bencher: Bencher, path: &str) {
     bencher
@@ -69,5 +86,42 @@ fn vector_add_bench(bencher: Bencher, N: usize) {
         })
         .bench_values(|(v1, v2, mut out)| {
             out.add(&v1, &v2).unwrap();
+        });
+}
+
+#[divan::bench(sample_count = 20, sample_size = 5, args=["resources/mtx/bcsstk18.mtx"])]
+fn vector_calc_residual_bench(bencher: Bencher, path: &str) {
+    bencher
+        .with_inputs(|| {
+            let M = CSRMatrix::from_mtx(path).unwrap();
+            let rows = M.rows();
+            let b = get_source(&M);
+            let x = Vector::from(vec![1.0; rows]);
+            let r = Vector::from(vec![0.0; rows]);
+            let tmp = Vector::from(vec![0.0; rows]);
+
+            (r, b, M, x, tmp)
+        })
+        .bench_values(|(mut r, b, M, x, mut tmp)| {
+            tmp.csr_spmv2(&M, &x).unwrap();
+            r.sub(&b, &tmp).unwrap();
+        });
+}
+
+// #[divan::bench(sample_count = 20, sample_size = 5, args=["resources/mtx/e40r5000.mtx", "resources/mtx/bcsstk18.mtx"])]
+#[divan::bench(sample_count = 20, sample_size = 5, args=["resources/mtx/bcsstk18.mtx"])]
+fn vector_calc_residual2_bench(bencher: Bencher, path: &str) {
+    bencher
+        .with_inputs(|| {
+            let M = CSRMatrix::from_mtx(path).unwrap();
+            let rows = M.rows();
+            let b = get_source(&M);
+            let x = Vector::from(vec![1.0; rows]);
+            let r = Vector::from(vec![0.0; rows]);
+
+            (r, b, M, x)
+        })
+        .bench_values(|(mut r, b, M, x)| {
+            r.calc_residual(&b, &M, &x).unwrap();
         });
 }

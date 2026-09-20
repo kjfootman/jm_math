@@ -270,13 +270,29 @@ impl Vector {
         Ok(self.dot(self)?.sqrt())
     }
 
-    pub fn calc_residual(&mut self, source: &Vector, matrix: &CSRMatrix, solution: &Vector) {
-        let (m, n) = (matrix.rows(), matrix.cols());
-        let ia = matrix.row_ptr();
-        let ja = matrix.col_indices();
-        let aa = matrix.values();
+    pub fn calc_residual(&mut self, b: &Vector, M: &CSRMatrix, x: &Vector) -> Result<(), Error> {
+        let (m, n) = (M.rows(), M.cols());
+        let ia = M.row_ptr();
+        let ja = M.col_indices();
+        let aa = M.values();
 
-        if n != self.len() {}
+        if m != self.len() || m != b.len() || n != x.len() {
+            let msg = format!(
+                "Dimension mismatch to calculate residual vector
+                 - length of out vector: {}
+                 - length of source vector: {}
+                 - length of solution vector: {}
+                 - dimension of matrix: {} x {}
+                 ",
+                self.len(),
+                b.len(),
+                x.len(),
+                m,
+                n
+            );
+            error!("{msg}");
+            return Err(Error::DimensionMismatch(msg));
+        }
 
         let chunk_size = simd::calc_chunk_size(m);
 
@@ -293,17 +309,19 @@ impl Vector {
                         let aa_slice = aa.get_unchecked(start..end);
                         let ja_slice = ja.get_unchecked(start..end);
 
-                        *v = source.get_unchecked(global_i)
+                        *v = b.get_unchecked(global_i)
                             - aa_slice
                                 .iter()
                                 .zip(ja_slice.iter())
                                 .map(|(&a_value, &col_idx)| {
-                                    a_value * solution.get_unchecked(col_idx as usize)
+                                    a_value * x.get_unchecked(col_idx as usize)
                                 })
                                 .sum::<f64>();
                     }
                 });
             });
+
+        Ok(())
     }
 
     /// Import a `Vector` from a MTX file and return it.
@@ -420,7 +438,7 @@ impl Neg for Vector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::{CSRMatrixArgs, matrix};
+    use crate::linear_algebra::CSRMatrixArgs;
     use std::time::Instant;
     const N: usize = 2_500;
 
@@ -633,9 +651,9 @@ mod tests {
         let source = get_source_vec(&matrix);
 
         let mut r = Vector::new(rows);
-        r.calc_residual(&source, &matrix, &solution);
+        r.calc_residual(&source, &matrix, &solution)?;
 
-        assert_eq!(r.magnitude()?, 0.0);
+        assert_eq!(r, Vector::new(rows));
 
         Ok(())
     }
