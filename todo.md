@@ -8,6 +8,8 @@
 - [x] CSRMatrix에 with_diag_ptr 매소드 개발
 - [x] Simple coordinate로부터 CSRMatrix 생성 -> CSRMatrix::from_coo
 - [x] CSRMatrix row_ptr, col_indices, diag_ptr Vec<u32> 타입으로 수정
+- [ ] Vecotr::calc_residual - residual 연산 메소드 추가
+- [ ] Vector assign 연산 trait 구현 (AddAssign, SubAssign, MulAssign)
 - [ ] DenseMatrix 개발
   - [ ] Matrix 트레이트 구현
 

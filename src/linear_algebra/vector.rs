@@ -189,7 +189,7 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg));
         }
 
-        let chunk_size = simd::calculate_chunk_size(m);
+        let chunk_size = simd::calc_chunk_size(m);
 
         self.par_chunks_mut(chunk_size)
             .enumerate()
@@ -226,7 +226,7 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg));
         }
 
-        let chunk_size = simd::calculate_chunk_size(m);
+        let chunk_size = simd::calc_chunk_size(m);
 
         self.par_chunks_mut(chunk_size)
             .enumerate()
@@ -268,6 +268,42 @@ impl Vector {
 
     pub fn magnitude(&self) -> Result<f64, Error> {
         Ok(self.dot(self)?.sqrt())
+    }
+
+    pub fn calc_residual(&mut self, source: &Vector, matrix: &CSRMatrix, solution: &Vector) {
+        let (m, n) = (matrix.rows(), matrix.cols());
+        let ia = matrix.row_ptr();
+        let ja = matrix.col_indices();
+        let aa = matrix.values();
+
+        if n != self.len() {}
+
+        let chunk_size = simd::calc_chunk_size(m);
+
+        self.par_chunks_mut(chunk_size)
+            .enumerate()
+            .for_each(|(chunk_idx, chunked_arr)| {
+                chunked_arr.iter_mut().enumerate().for_each(|(i, v)| {
+                    unsafe {
+                        // row index
+                        let global_i = chunk_idx * chunk_size + i;
+                        let start = *ia.get_unchecked(global_i) as usize;
+                        let end = *ia.get_unchecked(global_i + 1) as usize;
+
+                        let aa_slice = aa.get_unchecked(start..end);
+                        let ja_slice = ja.get_unchecked(start..end);
+
+                        *v = source.get_unchecked(global_i)
+                            - aa_slice
+                                .iter()
+                                .zip(ja_slice.iter())
+                                .map(|(&a_value, &col_idx)| {
+                                    a_value * solution.get_unchecked(col_idx as usize)
+                                })
+                                .sum::<f64>();
+                    }
+                });
+            });
     }
 
     /// Import a `Vector` from a MTX file and return it.
@@ -384,12 +420,47 @@ impl Neg for Vector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::CSRMatrixArgs;
+    use crate::linear_algebra::{CSRMatrixArgs, matrix};
     use std::time::Instant;
     const N: usize = 2_500;
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
+    }
+
+    fn get_5x5_matrix() -> CSRMatrix {
+        // 1.0   0.0   0.0   2.0   0.0
+        // 3.0   4.0   0.0   5.0   0.0
+        // 6.0   0.0   7.0   8.0   9.0
+        // 0.0   0.0  10.0  11.0   0.0
+        // 0.0   0.0   0.0   0.0  12.0
+        let (rows, cols) = (5, 5);
+        let row_ptr = vec![0u32, 2, 5, 9, 11, 12];
+        let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
+        let values = vec![
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+        ];
+
+        CSRMatrix::from_args(CSRMatrixArgs {
+            rows,
+            cols,
+            row_ptr,
+            diag_ptr: None,
+            col_indices,
+            values,
+        })
+    }
+
+    fn get_source_vec(matrix: &CSRMatrix) -> Vector {
+        let row_ptr = matrix.row_ptr();
+        let values = matrix.values();
+
+        let row_sum_vec: Vec<f64> = row_ptr
+            .windows(2)
+            .map(|range| values[range[0] as usize..range[1] as usize].iter().sum())
+            .collect();
+
+        Vector::from(row_sum_vec)
     }
 
     #[test]
@@ -489,38 +560,16 @@ mod tests {
 
     #[test]
     fn vector_csr_spmxv_test() -> Result<(), Error> {
-        let (rows, cols) = (5, 5);
-        let row_ptr = vec![0u32, 2, 5, 9, 11, 12];
-        let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
-        let values = vec![
-            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
-        ];
-
-        // 행렬의 각 행 요소 합
-        let row_sum_vec: Vec<f64> = row_ptr
-            .windows(2)
-            .map(|range| values[range[0] as usize..range[1] as usize].iter().sum())
-            .collect();
-        let row_sum_vec = Vector::from(row_sum_vec);
-
         // CSRMatrix 생성 및 1.0 벡터와 곱
         // 1.0   0.0   0.0   2.0   0.0   |   1.0
         // 3.0   4.0   0.0   5.0   0.0   |   1.0
         // 6.0   0.0   7.0   8.0   9.0   |   1.0
         // 0.0   0.0  10.0  11.0   0.0   |   1.0
         // 0.0   0.0   0.0   0.0  12.0   |   1.0
-
-        // TODO: diag_ptr 설정
-        let matrix = CSRMatrix::from_args(CSRMatrixArgs {
-            rows,
-            cols,
-            row_ptr,
-            diag_ptr: None,
-            col_indices,
-            values,
-        });
-        let vec = Vector::from(vec![1.0; cols]);
-        let mut result = Vector::new(cols);
+        let matrix = get_5x5_matrix();
+        let row_sum_vec = get_source_vec(&matrix);
+        let vec = Vector::from(vec![1.0; matrix.cols()]);
+        let mut result = Vector::new(matrix.cols());
 
         result.csr_spmv(&matrix, &vec)?;
 
@@ -572,6 +621,21 @@ mod tests {
             result.csr_spmv2(&M, &v)?;
         }
         log::debug!("Elapsed Time: {:.2} ms", start.elapsed().as_nanos());
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_calc_residual() -> Result<(), Error> {
+        let matrix = get_5x5_matrix();
+        let (rows, cols) = (matrix.rows(), matrix.cols());
+        let solution = Vector::from(vec![1.0; cols]);
+        let source = get_source_vec(&matrix);
+
+        let mut r = Vector::new(rows);
+        r.calc_residual(&source, &matrix, &solution);
+
+        assert_eq!(r.magnitude()?, 0.0);
 
         Ok(())
     }
