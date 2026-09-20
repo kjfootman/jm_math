@@ -221,7 +221,7 @@ impl Matrix for CSRMatrix {
 /// Returns pointers to the diagonal elements.
 pub fn find_diag_ptr(row_ptr: &[u32], col_indices: &[u32]) -> Result<Vec<u32>, Error> {
     let m = row_ptr.len() - 1;
-    let chunk_size = simd::calculate_chunk_size(m);
+    let chunk_size = simd::calc_chunk_size(m);
     let mut diag_ptr = vec![0; m];
 
     diag_ptr
