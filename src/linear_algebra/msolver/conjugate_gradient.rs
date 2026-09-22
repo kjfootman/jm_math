@@ -97,12 +97,6 @@ impl MSolver for ConjugateGradient {
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
         let A = matrix;
-        // let ia = A.row_ptr();
-        // let ja = A.col_indices();
-        // let da = A
-        //     .diag_ptr()
-        //     .ok_or_else(|| Error::ValueError("Diagonal pointer is not initialized".into()))?;
-        // let aa = A.values();
         let mut r_squared;
 
         let workspace = &mut self.workspace;
@@ -116,7 +110,8 @@ impl MSolver for ConjugateGradient {
         // 1.1 Ap = A * x0
         Ap.csr_spmv2(A, x)?;
         // 1.2 r0 = b - Ap = b - A * x0
-        r.sub(b, Ap)?;
+        // r.sub(b, Ap)?;
+        r.calc_residual(b, A, x)?;
 
         // p0 = r0
         *p = r.clone();
@@ -124,6 +119,7 @@ impl MSolver for ConjugateGradient {
         while *residual > tol && *iter < max_iter {
             // 1. alpha = r * r / Ap * p
             r_squared = r.dot(r)?;
+            // 1.1 Ap = A * p;
             Ap.csr_spmv2(A, p)?;
             let alpha = r_squared / Ap.dot(p)?;
 
