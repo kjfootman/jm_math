@@ -125,3 +125,26 @@ fn vector_calc_residual2_bench(bencher: Bencher, path: &str) {
             r.calc_residual(&b, &M, &x).unwrap();
         });
 }
+
+#[divan::bench(sample_count = 5, sample_size = 5, args=["resources/mtx/bcsstk18.mtx"])]
+fn conjugate_gradient(bencher: Bencher, path: &str) {
+    bencher
+        .with_inputs(|| {
+            let M = CSRMatrix::from_mtx(path).unwrap();
+            let b = get_source(&M);
+            let x = Vector::new(M.rows());
+            // let cg =
+
+            (M, x, b)
+        })
+        .bench_values(|(M, mut x, b)| {
+            let mut cg = ConjugateGradientBuilder::new()
+                .with_max_iter(5000)
+                .with_tolerance(1E-12)
+                .build();
+            cg.solve(&M, &b, &mut x).unwrap();
+
+            // println!("{}", cg.iter());
+            // println!("{}", cg.residual());
+        });
+}

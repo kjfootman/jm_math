@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector},
+    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, simd},
 };
 
 #[derive(Debug)]
@@ -124,19 +124,30 @@ impl MSolver for ConjugateGradient {
             let alpha = r_squared / Ap.dot(p)?;
 
             // 2. x = x + alpha * p
-            p.scale_assign(alpha);
-            x.add_assign(p)?;
+            // p.scale_assign(alpha);
+            // x.add_assign(p)?;
+            x.scale_add_assign(alpha, p)?;
 
             // 3. r = r - alpha * Ap
-            Ap.scale_assign(alpha);
-            r.sub_assign(Ap)?;
+            // Ap.scale_assign(alpha);
+            // r.sub_assign(Ap)?;
+            r.scale_add_assign(-alpha, Ap)?;
 
             // 4. beta = r(j + 1) * r(j + 1) / r(j) * r(j)
             let beta = r.dot(r)? / r_squared;
 
             // 5. p = r + beta * p;
-            Ap.scale(beta / alpha, p);
-            p.add(r, Ap)?;
+            // Ap.scale(beta / alpha, p);
+
+            // Ap.scale(beta, p);
+            // p.add(r, Ap)?;
+
+            let arch = simd::arch();
+            arch.dispatch(|| {
+                p.iter_mut().zip(r.iter()).for_each(|(p, r)| {
+                    *p = beta * *p + r;
+                });
+            });
 
             // relative calculate residual
             *residual = r.magnitude()?.abs() / b_mag;

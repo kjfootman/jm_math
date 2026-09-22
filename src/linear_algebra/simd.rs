@@ -178,6 +178,27 @@ impl<'a> WithSimd for VectorScaleAdd<'a> {
     }
 }
 
+pub struct VectorScaleAddAssign<'a>(pub &'a mut [f64], pub f64, pub &'a [f64]);
+impl<'a> WithSimd for VectorScaleAddAssign<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.0);
+        let (a_head, a_tail) = S::as_simd_f64s(self.2);
+        let scale = self.1;
+        let scale_simd = simd.splat_f64s(scale);
+
+        out_head.iter_mut().zip(a_head.iter()).for_each(|(v, a)| {
+            *v = simd.mul_add_f64s(scale_simd, *a, *v);
+        });
+
+        out_tail.iter_mut().zip(a_tail.iter()).for_each(|(v, a)| {
+            *v += scale * a;
+        });
+    }
+}
+
 pub struct VectorDot<'a>(pub &'a [f64], pub &'a [f64]);
 impl<'a> WithSimd for VectorDot<'a> {
     type Output = f64;
