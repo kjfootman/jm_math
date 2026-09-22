@@ -181,7 +181,7 @@ mod tests {
     use crate::linear_algebra::{CSRMatrixArgs, csr};
 
     #[test]
-    fn gauss_seidel_test() -> Result<(), Error> {
+    fn gauss_seidel() -> Result<(), Error> {
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 6, 8, 9];
         let col_indices = vec![0, 2, 3, 0, 1, 3, 2, 3, 3];
