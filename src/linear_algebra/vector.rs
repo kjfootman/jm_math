@@ -131,6 +131,21 @@ impl Vector {
         arch.dispatch(simd::VectorScale(self, scale, vec));
     }
 
+    pub fn scale_add(&mut self, b: &[f64], scale: f64, a: &[f64]) -> Result<(), Error> {
+        // b + scale * a
+
+        if a.len() != b.len() {
+            let msg = "Cannot scale and add vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
+        }
+
+        let arch = simd::arch();
+        arch.dispatch(simd::VectorScaleAdd(self, b, scale, a));
+
+        Ok(())
+    }
+
     pub fn scale_assign(&mut self, scale: f64) {
         // let len = self.len();
 
@@ -483,7 +498,7 @@ mod tests {
 
     #[test]
     /// Unit test for `Vector` addition.
-    fn vector_add_test() -> Result<(), Error> {
+    fn vector_add() -> Result<(), Error> {
         let v1 = Vector::from(vec![1.0; N]);
         let v2 = Vector::from(vec![2.0; N]);
         let v3 = Vector::from(vec![-1.0; N]);
@@ -503,7 +518,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_sub_test() -> Result<(), Error> {
+    fn vector_sub() -> Result<(), Error> {
         let v1 = Vector::from(vec![-1.0; N]);
         let v2 = Vector::from(vec![2.0; N]);
         let v3 = Vector::from(vec![-1.0; N]);
@@ -523,7 +538,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_scale_test() -> Result<(), Error> {
+    fn vector_scale() -> Result<(), Error> {
         let scale = 2.0;
         let v1 = Vector::from(vec![1.0; N]);
         let mut v = Vector::new(N);
@@ -542,7 +557,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_dot_test() -> Result<(), Error> {
+    fn vector_dot() -> Result<(), Error> {
         let v1 = Vector::from(vec![1.0; N]);
         let v2 = Vector::from(vec![1.0; N]);
 
@@ -552,7 +567,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_neg_test() -> Result<(), Error> {
+    fn vector_neg() -> Result<(), Error> {
         let mut v = Vector::from(vec![-1.0; N]);
         v.neg_assign();
 
@@ -568,7 +583,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_magnitude_test() -> Result<(), Error> {
+    fn vector_magnitude() -> Result<(), Error> {
         let v = Vector::from(vec![1.0; N]);
 
         assert_eq!(v.magnitude()?, 50.0);
@@ -577,7 +592,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_csr_spmxv_test() -> Result<(), Error> {
+    fn vector_csr_spmxv() -> Result<(), Error> {
         // CSRMatrix 생성 및 1.0 벡터와 곱
         // 1.0   0.0   0.0   2.0   0.0   |   1.0
         // 3.0   4.0   0.0   5.0   0.0   |   1.0
@@ -598,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_from_mtx_test() -> Result<(), Error> {
+    fn vector_from_mtx() -> Result<(), Error> {
         init();
 
         let path = "resources/mtx/e40r5000_rhs1.mtx";
@@ -610,7 +625,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_spmv_test() -> Result<(), Error> {
+    fn vector_spmv() -> Result<(), Error> {
         init();
 
         let M = CSRMatrix::from_mtx("resources/mtx/e40r5000.mtx")?;
@@ -627,7 +642,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_spmv_test2() -> Result<(), Error> {
+    fn vector_spmv2() -> Result<(), Error> {
         init();
 
         let M = CSRMatrix::from_mtx("resources/mtx/e40r5000.mtx")?;
@@ -654,6 +669,22 @@ mod tests {
         r.calc_residual(&source, &matrix, &solution)?;
 
         assert_eq!(r, Vector::new(rows));
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_scale_add() -> Result<(), Error> {
+        const N: usize = 1_000;
+        let a = Vector::from(vec![1.0; N]);
+        let b = Vector::from(vec![0.5; N]);
+        let mut result = Vector::new(N);
+        let scale = 0.5;
+
+        // b + scale * a
+        // [0.5; N] + 0.5 * [1.0; N] = [1.0; N]
+        result.scale_add(&b, scale, &a)?;
+        assert_eq!(result.iter().sum::<f64>(), N as f64);
 
         Ok(())
     }

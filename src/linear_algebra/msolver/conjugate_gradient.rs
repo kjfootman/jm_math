@@ -154,7 +154,7 @@ mod tests {
     use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, csr};
 
     #[test]
-    fn conjugate_gradient_test() -> Result<(), Error> {
+    fn conjugate_gradient() -> Result<(), Error> {
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 5, 9, 12];
         let col_indices = vec![0, 2, 3, 1, 2, 0, 1, 2, 3, 0, 2, 3];
