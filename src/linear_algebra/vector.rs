@@ -146,6 +146,21 @@ impl Vector {
         Ok(())
     }
 
+    pub fn scale_add_assign(&mut self, scale: f64, a: &[f64]) -> Result<(), Error> {
+        //  self += scale * a
+
+        if self.len() != a.len() {
+            let msg = "Cannot scale and add assign vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
+        }
+
+        let arch = simd::arch();
+        arch.dispatch(simd::VectorScaleAddAssign(self, scale, a));
+
+        Ok(())
+    }
+
     pub fn scale_assign(&mut self, scale: f64) {
         // let len = self.len();
 
@@ -684,7 +699,11 @@ mod tests {
         // b + scale * a
         // [0.5; N] + 0.5 * [1.0; N] = [1.0; N]
         result.scale_add(&b, scale, &a)?;
-        assert_eq!(result.iter().sum::<f64>(), N as f64);
+        assert_eq!(result, Vector::from(vec![1.0; N]));
+
+        // [2.0; N] = [1.0; N] + 2.0 * [0.5; N]
+        result.scale_add_assign(2.0, &b)?;
+        assert_eq!(result, Vector::from(vec![2.0; N]));
 
         Ok(())
     }
