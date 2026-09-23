@@ -10,7 +10,7 @@ edition = "2024"
 # panic = "abort"       # 패닉 스택 언와인딩 오버헤드 제거
 
 [dependencies]
-log = "0.4.33"
+log = { version = "0.4.33", features = ["std"] }
 pulp = "0.22.3"
 rayon = "1.12.0"
 thiserror = "2.0.18"

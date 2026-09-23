@@ -7,7 +7,7 @@ pub fn arch() -> &'static Arch {
     ARCH.get_or_init(Arch::new)
 }
 
-pub fn calculate_chunk_size(len: usize) -> usize {
+pub fn calc_chunk_size(len: usize) -> usize {
     let n_thread = rayon::current_num_threads();
 
     ((len / (n_thread * 4)).max(1024) + 7) & !7
@@ -145,6 +145,57 @@ impl<'a> WithSimd for VectorScaleAssign<'a> {
             .for_each(|v| *v = simd.mul_f64s(scale_simd, *v));
 
         tail.iter_mut().for_each(|v| *v *= scale);
+    }
+}
+
+pub struct VectorScaleAdd<'a>(pub &'a mut [f64], pub &'a [f64], pub f64, pub &'a [f64]);
+impl<'a> WithSimd for VectorScaleAdd<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.0);
+        let (a_head, a_tail) = S::as_simd_f64s(self.3);
+        let scale = self.2;
+        let (b_head, b_tail) = S::as_simd_f64s(self.1);
+        let scale_simd = simd.splat_f64s(scale);
+
+        out_head
+            .iter_mut()
+            .zip(a_head.iter())
+            .zip(b_head.iter())
+            .for_each(|((v, a), b)| {
+                *v = simd.mul_add_f64s(scale_simd, *a, *b);
+            });
+
+        out_tail
+            .iter_mut()
+            .zip(a_tail.iter())
+            .zip(b_tail.iter())
+            .for_each(|((v, a), b)| {
+                *v = scale * a + b;
+            });
+    }
+}
+
+pub struct VectorScaleAddAssign<'a>(pub &'a mut [f64], pub f64, pub &'a [f64]);
+impl<'a> WithSimd for VectorScaleAddAssign<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.0);
+        let (a_head, a_tail) = S::as_simd_f64s(self.2);
+        let scale = self.1;
+        let scale_simd = simd.splat_f64s(scale);
+
+        out_head.iter_mut().zip(a_head.iter()).for_each(|(v, a)| {
+            *v = simd.mul_add_f64s(scale_simd, *a, *v);
+        });
+
+        out_tail.iter_mut().zip(a_tail.iter()).for_each(|(v, a)| {
+            *v += scale * a;
+        });
     }
 }
 

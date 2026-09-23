@@ -221,7 +221,7 @@ impl Matrix for CSRMatrix {
 /// Returns pointers to the diagonal elements.
 pub fn find_diag_ptr(row_ptr: &[u32], col_indices: &[u32]) -> Result<Vec<u32>, Error> {
     let m = row_ptr.len() - 1;
-    let chunk_size = simd::calculate_chunk_size(m);
+    let chunk_size = simd::calc_chunk_size(m);
     let mut diag_ptr = vec![0; m];
 
     diag_ptr
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn csr_diagonal_test() -> Result<(), Error> {
+    fn csr_diagonal() -> Result<(), Error> {
         // 대각성분 찾기 기능 검증
         // initialize test
         init();
@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn csr_from_mtx_test() -> Result<(), Error> {
+    fn csr_from_mtx() -> Result<(), Error> {
         // MTX 포맷 읽기 기능 검증
         // initialize test
         init();
@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    fn csr_from_coordinate_test() -> Result<(), Error> {
+    fn csr_from_coordinate() -> Result<(), Error> {
         // coordinate 배열로부터 생성된 CSRMatrix 검증
         // initialize test
         init();
