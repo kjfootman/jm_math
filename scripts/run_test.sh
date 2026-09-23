@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# TEST_NAME="vector_from_mtx_test"
-# TEST_NAME="csr_diagonal_test"
-# TEST_NAME="gauss_seidel_test"
-TEST_NAME="vector_spmv"
+# TEST_NAME="vector_from_mtx"
+# TEST_NAME="csr_diagonal"
+# TEST_NAME="gauss_seidel"
+# TEST_NAME="vector_spmv"
+TEST_NAME="conjugate_gradient"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd

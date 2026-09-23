@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use std::io::BufRead;
 use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Vector {
     values: Vec<f64>,
 }
@@ -30,14 +30,18 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(a.par_chunks(chunk_size))
-            .zip(b.par_chunks(chunk_size))
-            .for_each(|((out, a), b)| {
-                arch.dispatch(simd::VectorAdd(out, a, b));
-            });
+        // 방법.1
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(a.par_chunks(chunk_size))
+        //     .zip(b.par_chunks(chunk_size))
+        //     .for_each(|((out, a), b)| {
+        //         arch.dispatch(simd::VectorAdd(out, a, b));
+        //     });
+
+        // 방법.2
+        arch.dispatch(simd::VectorAdd(self, a, b));
 
         Ok(())
     }
@@ -52,13 +56,15 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorAddAssign(out, vec));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .for_each(|(out, vec)| {
+        //         arch.dispatch(simd::VectorAddAssign(out, vec));
+        //     });
+
+        arch.dispatch(simd::VectorAddAssign(self, vec));
 
         Ok(())
     }
@@ -73,14 +79,16 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(a.par_chunks(chunk_size))
-            .zip(b.par_chunks(chunk_size))
-            .for_each(|((out, a), b)| {
-                arch.dispatch(simd::VectorSub(out, a, b));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(a.par_chunks(chunk_size))
+        //     .zip(b.par_chunks(chunk_size))
+        //     .for_each(|((out, a), b)| {
+        //         arch.dispatch(simd::VectorSub(out, a, b));
+        //     });
+
+        arch.dispatch(simd::VectorSub(self, a, b));
 
         Ok(())
     }
@@ -95,39 +103,75 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorSubAssign(out, vec));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .for_each(|(out, vec)| {
+        //         arch.dispatch(simd::VectorSubAssign(out, vec));
+        //     });
+
+        arch.dispatch(simd::VectorSubAssign(self, vec));
 
         Ok(())
     }
 
     pub fn scale(&mut self, scale: f64, vec: &[f64]) {
-        let len = self.len();
+        // let len = self.len();
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .for_each(|(out, vec)| {
-                arch.dispatch(simd::VectorScale(out, scale, vec));
-            });
+        // self.par_chunks_mut(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .for_each(|(out, vec)| {
+        //         arch.dispatch(simd::VectorScale(out, scale, vec));
+        //     });
+
+        arch.dispatch(simd::VectorScale(self, scale, vec));
+    }
+
+    pub fn scale_add(&mut self, b: &[f64], scale: f64, a: &[f64]) -> Result<(), Error> {
+        // b + scale * a
+
+        if a.len() != b.len() {
+            let msg = "Cannot scale and add vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
+        }
+
+        let arch = simd::arch();
+        arch.dispatch(simd::VectorScaleAdd(self, b, scale, a));
+
+        Ok(())
+    }
+
+    pub fn scale_add_assign(&mut self, scale: f64, a: &[f64]) -> Result<(), Error> {
+        //  self += scale * a
+
+        if self.len() != a.len() {
+            let msg = "Cannot scale and add assign vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
+        }
+
+        let arch = simd::arch();
+        arch.dispatch(simd::VectorScaleAddAssign(self, scale, a));
+
+        Ok(())
     }
 
     pub fn scale_assign(&mut self, scale: f64) {
-        let len = self.len();
+        // let len = self.len();
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size).for_each(|out| {
-            arch.dispatch(simd::VectorScaleAssign(out, scale));
-        });
+        // self.par_chunks_mut(chunk_size).for_each(|out| {
+        //     arch.dispatch(simd::VectorScaleAssign(out, scale));
+        // });
+
+        arch.dispatch(simd::VectorScaleAssign(self, scale));
     }
 
     pub fn dot(&self, vec: &[f64]) -> Result<f64, Error> {
@@ -141,13 +185,20 @@ impl Vector {
         }
 
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
 
-        let result = self
-            .par_chunks(chunk_size)
-            .zip(vec.par_chunks(chunk_size))
-            .map(|(a, b)| arch.dispatch(simd::VectorDot(a, b)))
-            .sum::<f64>();
+        // 멀티 스레드 오버헤드 발생
+        // let chunk_size = simd::calculate_chunk_size(len);
+        // let result = self
+        //     .par_chunks(chunk_size)
+        //     .zip(vec.par_chunks(chunk_size))
+        //     .map(|(a, b)| arch.dispatch(simd::VectorDot(a, b)))
+        //     .sum::<f64>();
+
+        // 방법.2
+        // let result = self.iter().zip(vec).map(|(a, b)| a * b).sum::<f64>();
+
+        // 방법.3
+        let result = arch.dispatch(simd::VectorDot(self, vec));
 
         Ok(result)
     }
@@ -168,7 +219,7 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg));
         }
 
-        let chunk_size = simd::calculate_chunk_size(m);
+        let chunk_size = simd::calc_chunk_size(m);
 
         self.par_chunks_mut(chunk_size)
             .enumerate()
@@ -205,7 +256,7 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg));
         }
 
-        let chunk_size = simd::calculate_chunk_size(m);
+        let chunk_size = simd::calc_chunk_size(m);
 
         self.par_chunks_mut(chunk_size)
             .enumerate()
@@ -235,16 +286,72 @@ impl Vector {
     }
 
     pub fn neg_assign(&mut self) {
-        let len = self.len();
+        // let len = self.len();
         let arch = simd::arch();
-        let chunk_size = simd::calculate_chunk_size(len);
+        // let chunk_size = simd::calculate_chunk_size(len);
 
-        self.par_chunks_mut(chunk_size)
-            .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
+        // self.par_chunks_mut(chunk_size)
+        //     .for_each(|v| arch.dispatch(simd::VectorNeg(v)));
+
+        arch.dispatch(simd::VectorNeg(self));
     }
 
     pub fn magnitude(&self) -> Result<f64, Error> {
         Ok(self.dot(self)?.sqrt())
+    }
+
+    pub fn calc_residual(&mut self, b: &Vector, M: &CSRMatrix, x: &Vector) -> Result<(), Error> {
+        let (m, n) = (M.rows(), M.cols());
+        let ia = M.row_ptr();
+        let ja = M.col_indices();
+        let aa = M.values();
+
+        if m != self.len() || m != b.len() || n != x.len() {
+            let msg = format!(
+                "Dimension mismatch to calculate residual vector
+                 - length of out vector: {}
+                 - length of source vector: {}
+                 - length of solution vector: {}
+                 - dimension of matrix: {} x {}
+                 ",
+                self.len(),
+                b.len(),
+                x.len(),
+                m,
+                n
+            );
+            error!("{msg}");
+            return Err(Error::DimensionMismatch(msg));
+        }
+
+        let chunk_size = simd::calc_chunk_size(m);
+
+        self.par_chunks_mut(chunk_size)
+            .enumerate()
+            .for_each(|(chunk_idx, chunked_arr)| {
+                chunked_arr.iter_mut().enumerate().for_each(|(i, v)| {
+                    unsafe {
+                        // row index
+                        let global_i = chunk_idx * chunk_size + i;
+                        let start = *ia.get_unchecked(global_i) as usize;
+                        let end = *ia.get_unchecked(global_i + 1) as usize;
+
+                        let aa_slice = aa.get_unchecked(start..end);
+                        let ja_slice = ja.get_unchecked(start..end);
+
+                        *v = b.get_unchecked(global_i)
+                            - aa_slice
+                                .iter()
+                                .zip(ja_slice.iter())
+                                .map(|(&a_value, &col_idx)| {
+                                    a_value * x.get_unchecked(col_idx as usize)
+                                })
+                                .sum::<f64>();
+                    }
+                });
+            });
+
+        Ok(())
     }
 
     /// Import a `Vector` from a MTX file and return it.
@@ -369,9 +476,44 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
+    fn get_5x5_matrix() -> CSRMatrix {
+        // 1.0   0.0   0.0   2.0   0.0
+        // 3.0   4.0   0.0   5.0   0.0
+        // 6.0   0.0   7.0   8.0   9.0
+        // 0.0   0.0  10.0  11.0   0.0
+        // 0.0   0.0   0.0   0.0  12.0
+        let (rows, cols) = (5, 5);
+        let row_ptr = vec![0u32, 2, 5, 9, 11, 12];
+        let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
+        let values = vec![
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+        ];
+
+        CSRMatrix::from_args(CSRMatrixArgs {
+            rows,
+            cols,
+            row_ptr,
+            diag_ptr: None,
+            col_indices,
+            values,
+        })
+    }
+
+    fn get_source_vec(matrix: &CSRMatrix) -> Vector {
+        let row_ptr = matrix.row_ptr();
+        let values = matrix.values();
+
+        let row_sum_vec: Vec<f64> = row_ptr
+            .windows(2)
+            .map(|range| values[range[0] as usize..range[1] as usize].iter().sum())
+            .collect();
+
+        Vector::from(row_sum_vec)
+    }
+
     #[test]
     /// Unit test for `Vector` addition.
-    fn vector_add_test() -> Result<(), Error> {
+    fn vector_add() -> Result<(), Error> {
         let v1 = Vector::from(vec![1.0; N]);
         let v2 = Vector::from(vec![2.0; N]);
         let v3 = Vector::from(vec![-1.0; N]);
@@ -391,7 +533,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_sub_test() -> Result<(), Error> {
+    fn vector_sub() -> Result<(), Error> {
         let v1 = Vector::from(vec![-1.0; N]);
         let v2 = Vector::from(vec![2.0; N]);
         let v3 = Vector::from(vec![-1.0; N]);
@@ -411,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_scale_test() -> Result<(), Error> {
+    fn vector_scale() -> Result<(), Error> {
         let scale = 2.0;
         let v1 = Vector::from(vec![1.0; N]);
         let mut v = Vector::new(N);
@@ -430,7 +572,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_dot_test() -> Result<(), Error> {
+    fn vector_dot() -> Result<(), Error> {
         let v1 = Vector::from(vec![1.0; N]);
         let v2 = Vector::from(vec![1.0; N]);
 
@@ -440,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_neg_test() -> Result<(), Error> {
+    fn vector_neg() -> Result<(), Error> {
         let mut v = Vector::from(vec![-1.0; N]);
         v.neg_assign();
 
@@ -456,7 +598,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_magnitude_test() -> Result<(), Error> {
+    fn vector_magnitude() -> Result<(), Error> {
         let v = Vector::from(vec![1.0; N]);
 
         assert_eq!(v.magnitude()?, 50.0);
@@ -465,39 +607,17 @@ mod tests {
     }
 
     #[test]
-    fn vector_csr_spmxv_test() -> Result<(), Error> {
-        let (rows, cols) = (5, 5);
-        let row_ptr = vec![0u32, 2, 5, 9, 11, 12];
-        let col_indices = vec![0, 3, 0, 1, 3, 0, 2, 3, 4, 2, 3, 4];
-        let values = vec![
-            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
-        ];
-
-        // 행렬의 각 행 요소 합
-        let row_sum_vec: Vec<f64> = row_ptr
-            .windows(2)
-            .map(|range| values[range[0] as usize..range[1] as usize].iter().sum())
-            .collect();
-        let row_sum_vec = Vector::from(row_sum_vec);
-
+    fn vector_csr_spmxv() -> Result<(), Error> {
         // CSRMatrix 생성 및 1.0 벡터와 곱
         // 1.0   0.0   0.0   2.0   0.0   |   1.0
         // 3.0   4.0   0.0   5.0   0.0   |   1.0
         // 6.0   0.0   7.0   8.0   9.0   |   1.0
         // 0.0   0.0  10.0  11.0   0.0   |   1.0
         // 0.0   0.0   0.0   0.0  12.0   |   1.0
-
-        // TODO: diag_ptr 설정
-        let matrix = CSRMatrix::from_args(CSRMatrixArgs {
-            rows,
-            cols,
-            row_ptr,
-            diag_ptr: None,
-            col_indices,
-            values,
-        });
-        let vec = Vector::from(vec![1.0; cols]);
-        let mut result = Vector::new(cols);
+        let matrix = get_5x5_matrix();
+        let row_sum_vec = get_source_vec(&matrix);
+        let vec = Vector::from(vec![1.0; matrix.cols()]);
+        let mut result = Vector::new(matrix.cols());
 
         result.csr_spmv(&matrix, &vec)?;
 
@@ -508,7 +628,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_from_mtx_test() -> Result<(), Error> {
+    fn vector_from_mtx() -> Result<(), Error> {
         init();
 
         let path = "resources/mtx/e40r5000_rhs1.mtx";
@@ -520,7 +640,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_spmv_test() -> Result<(), Error> {
+    fn vector_spmv() -> Result<(), Error> {
         init();
 
         let M = CSRMatrix::from_mtx("resources/mtx/e40r5000.mtx")?;
@@ -537,7 +657,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_spmv_test2() -> Result<(), Error> {
+    fn vector_spmv2() -> Result<(), Error> {
         init();
 
         let M = CSRMatrix::from_mtx("resources/mtx/e40r5000.mtx")?;
@@ -549,6 +669,41 @@ mod tests {
             result.csr_spmv2(&M, &v)?;
         }
         log::debug!("Elapsed Time: {:.2} ms", start.elapsed().as_nanos());
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_calc_residual() -> Result<(), Error> {
+        let matrix = get_5x5_matrix();
+        let (rows, cols) = (matrix.rows(), matrix.cols());
+        let solution = Vector::from(vec![1.0; cols]);
+        let source = get_source_vec(&matrix);
+
+        let mut r = Vector::new(rows);
+        r.calc_residual(&source, &matrix, &solution)?;
+
+        assert_eq!(r, Vector::new(rows));
+
+        Ok(())
+    }
+
+    #[test]
+    fn vector_scale_add() -> Result<(), Error> {
+        const N: usize = 1_000;
+        let a = Vector::from(vec![1.0; N]);
+        let b = Vector::from(vec![0.5; N]);
+        let mut result = Vector::new(N);
+        let scale = 0.5;
+
+        // b + scale * a
+        // [0.5; N] + 0.5 * [1.0; N] = [1.0; N]
+        result.scale_add(&b, scale, &a)?;
+        assert_eq!(result, Vector::from(vec![1.0; N]));
+
+        // [2.0; N] = [1.0; N] + 2.0 * [0.5; N]
+        result.scale_add_assign(2.0, &b)?;
+        assert_eq!(result, Vector::from(vec![2.0; N]));
 
         Ok(())
     }
