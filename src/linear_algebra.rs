@@ -1,5 +1,6 @@
 mod matrix;
 mod msolver;
+pub mod preconditioner;
 mod simd;
 mod vector;
 
