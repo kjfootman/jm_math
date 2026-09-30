@@ -5,7 +5,7 @@ mod gmres;
 use crate::error::Error;
 use crate::linear_algebra::{CSRMatrix, Vector};
 pub use conjugate_gradient::ConjugateGradientBuilder;
-pub use gauss_seidel::{GaussSeidel, GaussSeidelBuilder};
+pub use gauss_seidel::GaussSeidelBuilder;
 
 pub trait MSolver {
     fn iter(&self) -> usize;

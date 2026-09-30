@@ -12,7 +12,7 @@ pub struct ConjugateGradient {
     workspace: Workspace,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConjugateGradientBuilder {
     tolerance: Option<f64>,
     max_iter: Option<usize>,
