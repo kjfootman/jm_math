@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, simd},
+    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, preconditioner::Preconditioner, simd},
 };
 
 #[derive(Debug)]
@@ -89,7 +89,13 @@ impl MSolver for ConjugateGradient {
         self.residual
     }
 
-    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector, x: &mut Vector) -> Result<(), Error> {
+    fn solve<'a, T: Preconditioner>(
+        &mut self,
+        matrix: &'a CSRMatrix,
+        pc: &'a T,
+        b: &Vector,
+        x: &mut Vector,
+    ) -> Result<(), Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
@@ -162,7 +168,7 @@ impl MSolver for ConjugateGradient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, csr};
+    use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, csr, preconditioner::Jacobi};
 
     #[test]
     fn conjugate_gradient() -> Result<(), Error> {
@@ -187,7 +193,9 @@ mod tests {
             .with_tolerance(1E-7)
             .build();
         let mut x = Vector::new(rows);
-        cg.solve(&M, &b, &mut x)?;
+        let jacobi = Jacobi::new(&M);
+
+        cg.solve(&M, &jacobi, &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
