@@ -1,5 +1,7 @@
-use super::Matrix;
-use crate::{error::Error, linear_algebra::simd};
+use crate::{
+    error::Error,
+    linear_algebra::{matrix::Matrix, simd},
+};
 use rayon::prelude::*;
 use std::{
     io::BufRead,

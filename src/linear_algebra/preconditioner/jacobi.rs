@@ -1,6 +1,7 @@
-use super::Preconditioner;
-use crate::error::Error;
-use crate::linear_algebra::{CSRMatrix, simd};
+use crate::{
+    error::Error,
+    linear_algebra::{matrix::csr::CSRMatrix, preconditioner::Preconditioner, simd},
+};
 
 pub struct Jacobi<'a> {
     matrix: &'a CSRMatrix,
