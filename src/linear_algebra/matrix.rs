@@ -1,7 +1,5 @@
 pub mod csr;
-mod dense;
-
-pub use csr::{CSRMatrix, CSRMatrixArgs};
+pub mod dense;
 
 pub trait Matrix {
     /// Return the number of rows.

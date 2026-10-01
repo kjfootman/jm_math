@@ -141,8 +141,7 @@ fn conjugate_gradient(bencher: Bencher, path: &str) {
                 .with_max_iter(5000)
                 .with_tolerance(1E-12)
                 .build();
-            let pc = preconditioner::Jacobi::new(&M);
-            cg.solve(&M, &pc, &b, &mut x).unwrap();
+            cg.solve(&M, &pc::NoPreconditioner, &b, &mut x).unwrap();
 
             // println!("{}", cg.iter());
             // println!("{}", cg.residual());

@@ -6,7 +6,6 @@ fn main() -> Result<(), Error> {
     env_logger::builder().is_test(false).try_init()?;
 
     let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
-    let pc = preconditioner::Jacobi::new(&M);
     let b = get_source(&M);
     let mut gs = GaussSeidelBuilder::new()
         .with_max_iter(5000)
@@ -15,7 +14,7 @@ fn main() -> Result<(), Error> {
     let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
-    match gs.solve(&M, &pc, &b, &mut x) {
+    match gs.solve(&M, &pc::NoPreconditioner, &b, &mut x) {
         Ok(_) => {
             log::info!(
                 "Converged - iteration: {} - residual: {:.2E}",
