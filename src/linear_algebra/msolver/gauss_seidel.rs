@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector},
+    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, preconditioner::Preconditioner},
 };
 
 #[derive(Debug)]
@@ -97,7 +97,13 @@ impl MSolver for GaussSeidel {
     }
 
     /// Solves the systems of euqations with Gauss-Seidel method.
-    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector, x: &mut Vector) -> Result<(), Error> {
+    fn solve<'a, T: Preconditioner>(
+        &mut self,
+        matrix: &'a CSRMatrix,
+        pc: &'a T,
+        b: &Vector,
+        x: &mut Vector,
+    ) -> Result<(), Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
@@ -178,7 +184,7 @@ impl MSolver for GaussSeidel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::{CSRMatrixArgs, csr};
+    use crate::linear_algebra::{CSRMatrixArgs, csr, preconditioner};
 
     #[test]
     fn gauss_seidel() -> Result<(), Error> {
@@ -203,7 +209,8 @@ mod tests {
             .with_tolerance(1E-7)
             .build();
         let mut x = Vector::new(rows);
-        gs.solve(&M, &b, &mut x)?;
+        let pc = preconditioner::Jacobi::new(&M);
+        gs.solve(&M, &pc, &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
