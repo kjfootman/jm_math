@@ -10,7 +10,8 @@ pub trait Preconditioner {
 }
 
 impl Preconditioner for NoPreconditioner {
-    fn preconditioning(&self, _: &[f64], _: &mut [f64]) -> Result<(), Error> {
+    fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error> {
+        inplace.copy_from_slice(v);
         Ok(())
     }
 }
