@@ -1,6 +1,11 @@
 use crate::{
     error::Error,
-    linear_algebra::{CSRMatrix, MSolver, Matrix, Vector, simd},
+    linear_algebra::{
+        matrix::{Matrix, csr::CSRMatrix},
+        msolver::MSolver,
+        preconditioner as pc, simd,
+        vector::Vector,
+    },
 };
 
 #[derive(Debug)]
@@ -12,7 +17,7 @@ pub struct ConjugateGradient {
     workspace: Workspace,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConjugateGradientBuilder {
     tolerance: Option<f64>,
     max_iter: Option<usize>,
@@ -89,7 +94,13 @@ impl MSolver for ConjugateGradient {
         self.residual
     }
 
-    fn solve(&mut self, matrix: &CSRMatrix, b: &Vector, x: &mut Vector) -> Result<(), Error> {
+    fn solve<'a, T: pc::Preconditioner>(
+        &mut self,
+        matrix: &'a CSRMatrix,
+        preconditioner: &'a T,
+        b: &Vector,
+        x: &mut Vector,
+    ) -> Result<(), Error> {
         let (m, n) = (matrix.rows(), matrix.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
@@ -97,6 +108,7 @@ impl MSolver for ConjugateGradient {
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
         let A = matrix;
+        let M = preconditioner;
         let mut r_squared;
 
         let workspace = &mut self.workspace;
@@ -162,7 +174,10 @@ impl MSolver for ConjugateGradient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::{CSRMatrix, CSRMatrixArgs, csr};
+    use crate::linear_algebra::{
+        matrix::csr::{self, CSRMatrix, CSRMatrixArgs},
+        preconditioner as pc,
+    };
 
     #[test]
     fn conjugate_gradient() -> Result<(), Error> {
@@ -187,7 +202,8 @@ mod tests {
             .with_tolerance(1E-7)
             .build();
         let mut x = Vector::new(rows);
-        cg.solve(&M, &b, &mut x)?;
+
+        cg.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",

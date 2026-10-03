@@ -1,4 +1,12 @@
-pub use crate::error::Error;
-pub use crate::linear_algebra::{
-    CSRMatrix, CSRMatrixArgs, ConjugateGradientBuilder, GaussSeidelBuilder, MSolver, Matrix, Vector,
+pub use crate::{
+    error::Error,
+    linear_algebra::{
+        matrix::{
+            Matrix,
+            csr::{CSRMatrix, CSRMatrixArgs},
+        },
+        msolver::{self, MSolver},
+        preconditioner as pc,
+        vector::Vector,
+    },
 };
