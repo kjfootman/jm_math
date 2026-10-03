@@ -5,9 +5,7 @@ pub use crate::{
             Matrix,
             csr::{CSRMatrix, CSRMatrixArgs},
         },
-        msolver::{
-            MSolver, conjugate_gradient::ConjugateGradientBuilder, gauss_seidel::GaussSeidelBuilder,
-        },
+        msolver::{self, MSolver},
         preconditioner as pc,
         vector::Vector,
     },

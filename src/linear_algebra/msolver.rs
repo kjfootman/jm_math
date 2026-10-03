@@ -1,6 +1,9 @@
-pub mod conjugate_gradient;
-pub mod gauss_seidel;
-pub mod gmres;
+mod conjugate_gradient;
+mod gauss_seidel;
+mod gmres;
+
+pub use conjugate_gradient::ConjugateGradientBuilder;
+pub use gauss_seidel::GaussSeidelBuilder;
 
 use crate::{
     error::Error,
