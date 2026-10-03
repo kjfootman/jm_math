@@ -133,16 +133,15 @@ fn conjugate_gradient(bencher: Bencher, path: &str) {
             let M = CSRMatrix::from_mtx(path).unwrap();
             let b = get_source(&M);
             let x = Vector::new(M.rows());
-            // let cg =
 
             (M, x, b)
         })
         .bench_values(|(M, mut x, b)| {
-            let mut cg = ConjugateGradientBuilder::new()
+            let mut cg = msolver::ConjugateGradientBuilder::new()
                 .with_max_iter(5000)
                 .with_tolerance(1E-12)
                 .build();
-            cg.solve(&M, &b, &mut x).unwrap();
+            cg.solve(&M, &pc::NoPreconditioner, &b, &mut x).unwrap();
 
             // println!("{}", cg.iter());
             // println!("{}", cg.residual());

@@ -1,10 +1,17 @@
-use super::simd;
-use crate::linear_algebra::CSRMatrix;
-use crate::{error::Error, linear_algebra::Matrix};
+use crate::{
+    error::Error,
+    linear_algebra::{
+        matrix::{Matrix, csr::CSRMatrix},
+        simd,
+    },
+};
+
 use log::error;
 use rayon::prelude::*;
-use std::io::BufRead;
-use std::ops::{Deref, DerefMut, Index, IndexMut, Neg, Range};
+use std::{
+    io::BufRead,
+    ops::{Deref, DerefMut, Index, IndexMut, Neg, Range},
+};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Vector {
@@ -468,7 +475,7 @@ impl Neg for Vector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::CSRMatrixArgs;
+    use crate::linear_algebra::matrix::csr::CSRMatrixArgs;
     use std::time::Instant;
     const N: usize = 2_500;
 

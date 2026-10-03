@@ -1,8 +1,11 @@
-mod matrix;
-mod msolver;
+pub mod matrix;
+pub mod msolver;
+pub mod preconditioner;
 mod simd;
-mod vector;
+pub mod vector;
 
-pub use matrix::{CSRMatrix, CSRMatrixArgs, Matrix, csr};
-pub use msolver::{ConjugateGradientBuilder, GaussSeidelBuilder, MSolver};
-pub use vector::Vector;
+// pub use matrix::{
+//     Matrix,
+//     csr::{self, CSRMatrix, CSRMatrixArgs},
+// };
+// pub use vector::Vector;

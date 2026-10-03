@@ -7,14 +7,14 @@ fn main() -> Result<(), Error> {
 
     let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
     let b = get_source(&M);
-    let mut cg = ConjugateGradientBuilder::new()
+    let mut cg = msolver::ConjugateGradientBuilder::new()
         .with_max_iter(5000)
         .with_tolerance(1E-12)
         .build();
     let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
-    match cg.solve(&M, &b, &mut x) {
+    match cg.solve(&M, &pc::NoPreconditioner, &b, &mut x) {
         Ok(_) => {
             log::info!(
                 "Converged - iteration: {} - residual: {:.2E}",
