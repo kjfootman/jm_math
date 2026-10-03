@@ -14,7 +14,9 @@ fn main() -> Result<(), Error> {
     let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
-    match cg.solve(&M, &pc::NoPreconditioner, &b, &mut x) {
+    // let precon = pc::NoPreconditioner;
+    let precon = pc::Jacobi::new(&M);
+    match cg.solve(&M, &precon, &b, &mut x) {
         Ok(_) => {
             log::info!(
                 "Converged - iteration: {} - residual: {:.2E}",
