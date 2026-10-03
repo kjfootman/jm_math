@@ -40,6 +40,7 @@ struct Workspace {
     pub Ap: Vector,
     pub p: Vector,
     pub r: Vector,
+    pub z: Vector,
 }
 
 impl Workspace {
@@ -48,12 +49,16 @@ impl Workspace {
             self.Ap.resize(size, 0.0);
         }
 
+        if self.p.len() < size {
+            self.p.resize(size, 0.0);
+        }
+
         if self.r.len() < size {
             self.r.resize(size, 0.0);
         }
 
-        if self.p.len() < size {
-            self.p.resize(size, 0.0);
+        if self.z.len() < size {
+            self.z.resize(size, 0.0);
         }
     }
 }
@@ -109,60 +114,77 @@ impl MSolver for ConjugateGradient {
         let b_mag = b.magnitude()?;
         let A = matrix;
         let M = preconditioner;
-        let mut r_squared;
 
         let workspace = &mut self.workspace;
         workspace.set_workspace(m);
 
         let Ap = &mut workspace.Ap;
-        let r = &mut workspace.r;
         let p = &mut workspace.p;
+        let r = &mut workspace.r;
+        let z = &mut workspace.z;
 
         // 1. calculate r0 = b - Ax0
-        // 1.1 Ap = A * x0
-        Ap.csr_spmv2(A, x)?;
-        // 1.2 r0 = b - Ap = b - A * x0
-        // r.sub(b, Ap)?;
         r.calc_residual(b, A, x)?;
 
-        // p0 = r0
-        *p = r.clone();
+        // 2. calculate z0 = M^-1 * r0;
+        M.preconditioning(r, z)?;
+
+        // rz = r0 * z0
+        let mut rz = r.dot(z)?;
+
+        // b 가 0벡터로 입력되거나 잔차가 0인 경우
+        if b_mag == 0.0 || rz <= 0.0 {
+            *residual = 0.0;
+            *iter = 0;
+            return Ok(());
+        }
+
+        // msolver 반복 사용을 위해 초기 residual, iter 설정
+        *residual = rz.sqrt() / b_mag;
+        *iter = 0;
+
+        // 초기값이 이미 tol을 만족하는 경우
+        if *residual < tol {
+            return Ok(());
+        }
+
+        // 3. clone p0 as r0
+        p.copy_from_slice(z);
 
         while *residual > tol && *iter < max_iter {
-            // 1. alpha = r * r / Ap * p
-            r_squared = r.dot(r)?;
-            // 1.1 Ap = A * p;
+            // 1. calculate alpha
+            // 1.2 Ap = A * p;
             Ap.csr_spmv2(A, p)?;
-            let alpha = r_squared / Ap.dot(p)?;
+            // 1.3 alpha = r * r / Ap * p
+            let alpha = rz / Ap.dot(p)?;
 
             // 2. x = x + alpha * p
-            // p.scale_assign(alpha);
-            // x.add_assign(p)?;
             x.scale_add_assign(alpha, p)?;
 
-            // 3. r = r - alpha * Ap
-            // Ap.scale_assign(alpha);
-            // r.sub_assign(Ap)?;
+            // 3. r(j + 1) = r(j) - alpha * Ap
             r.scale_add_assign(-alpha, Ap)?;
 
-            // 4. beta = r(j + 1) * r(j + 1) / r(j) * r(j)
-            let beta = r.dot(r)? / r_squared;
+            // 4. z(j + 1) = M^-1 * r(j + 1)
+            M.preconditioning(r, z)?;
 
-            // 5. p = r + beta * p;
-            // Ap.scale(beta / alpha, p);
+            // new_rz = r(j + 1) * z(j + 1)
+            let new_rz = r.dot(z)?;
 
-            // Ap.scale(beta, p);
-            // p.add(r, Ap)?;
+            // 4. beta = r(j + 1) * z(j + 1) / r(j) * r(j)
+            let beta = new_rz / rz;
 
+            // 5. p = z + beta * p;
             let arch = simd::arch();
             arch.dispatch(|| {
-                p.iter_mut().zip(r.iter()).for_each(|(p, r)| {
-                    *p = beta * *p + r;
+                p.iter_mut().zip(z.iter()).for_each(|(p, z)| {
+                    *p = beta * *p + z;
                 });
             });
 
             // relative calculate residual
-            *residual = r.magnitude()?.abs() / b_mag;
+            // *residual = r.magnitude()?.abs() / b_mag;
+            *residual = new_rz.sqrt() / b_mag;
+            rz = new_rz;
 
             *iter += 1;
         }
@@ -203,7 +225,8 @@ mod tests {
             .build();
         let mut x = Vector::new(rows);
 
-        cg.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
+        // cg.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
+        cg.solve(&M, &pc::Jacobi::new(&M), &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
