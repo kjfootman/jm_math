@@ -137,7 +137,7 @@ fn conjugate_gradient(bencher: Bencher, path: &str) {
             (M, x, b)
         })
         .bench_values(|(M, mut x, b)| {
-            let mut cg = ConjugateGradientBuilder::new()
+            let mut cg = msolver::ConjugateGradientBuilder::new()
                 .with_max_iter(5000)
                 .with_tolerance(1E-12)
                 .build();

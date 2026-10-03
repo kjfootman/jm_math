@@ -1,4 +1,4 @@
-pub mod jacobi;
+mod jacobi;
 
 use crate::error::Error;
 pub use jacobi::Jacobi;

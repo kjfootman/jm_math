@@ -8,4 +8,4 @@ pub mod vector;
 //     Matrix,
 //     csr::{self, CSRMatrix, CSRMatrixArgs},
 // };
-pub use vector::Vector;
+// pub use vector::Vector;
