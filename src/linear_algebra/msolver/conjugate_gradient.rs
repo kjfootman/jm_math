@@ -226,7 +226,7 @@ mod tests {
         let mut x = Vector::new(rows);
 
         // cg.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
-        cg.solve(&M, &pc::Jacobi::new(&M), &b, &mut x)?;
+        cg.solve(&M, &pc::Jacobi::new(&M)?, &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
