@@ -15,7 +15,7 @@ fn main() -> Result<(), Error> {
 
     let start = Instant::now();
     // let precon = pc::NoPreconditioner;
-    let precon = pc::Jacobi::new(&M);
+    let precon = pc::Jacobi::new(&M)?;
     match cg.solve(&M, &precon, &b, &mut x) {
         Ok(_) => {
             log::info!(
