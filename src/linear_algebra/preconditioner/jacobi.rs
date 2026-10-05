@@ -3,27 +3,44 @@ use crate::{
     linear_algebra::{matrix::csr::CSRMatrix, preconditioner::Preconditioner, simd},
 };
 
-pub struct Jacobi<'a> {
-    matrix: &'a CSRMatrix,
+pub struct Jacobi {
+    // inverse values of the diagonal elements.
+    diag_values: Vec<f64>,
 }
 
-impl<'a> Jacobi<'a> {
-    pub fn new(matrix: &'a CSRMatrix) -> Self {
-        Jacobi { matrix }
+impl Jacobi {
+    pub fn new(matrix: &CSRMatrix) -> Result<Self, Error> {
+        let diag_ptr = matrix
+            .diag_ptr()
+            .ok_or_else(|| Error::ValueError("Not initialized dia_ptr".to_string()))?;
+        let values = matrix.values();
+
+        let diag_values = diag_ptr
+            .iter()
+            .map(|&idx| values[idx as usize].recip())
+            .collect();
+
+        Ok(Jacobi { diag_values })
     }
 }
 
-impl<'a> Preconditioner for Jacobi<'a> {
-    fn preconditioning(&self, v: &mut [f64]) -> Result<(), Error> {
-        let diag_ptr = self
-            .matrix
-            .diag_ptr()
-            .ok_or_else(|| Error::ValueError("Failed to get the diag_ptr".into()))?;
-        let values = self.matrix.values();
+impl Preconditioner for Jacobi {
+    fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error> {
+        // method1: without simd
+        // inplace
+        //     .iter_mut()
+        //     .zip(v)
+        //     .zip(self.diag_values.iter())
+        //     .for_each(|((inplace, &v), &diag_value)| *inplace = v * diag_value);
 
-        // let arch = simd::arch();
-        diag_ptr.iter().zip(v.iter_mut()).for_each(|(diag_ptr, v)| {
-            *v /= values[*diag_ptr as usize];
+        // method2: with auto simd
+        let arch = simd::arch();
+        arch.dispatch(|| {
+            inplace
+                .iter_mut()
+                .zip(v)
+                .zip(self.diag_values.iter())
+                .for_each(|((inplace, &v), &diag_value)| *inplace = v * diag_value);
         });
 
         Ok(())
@@ -32,7 +49,6 @@ impl<'a> Preconditioner for Jacobi<'a> {
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
     use super::{Jacobi, Preconditioner};
     use crate::prelude::*;
 
@@ -47,12 +63,13 @@ mod tests {
             (2, 2, 5.0),
         ];
         let M = CSRMatrix::from_coordinates(rows, cols, coordinates);
-        let mut v = Vector::from(vec![1.0, 4.0, 5.0]);
-        let pc = Jacobi::new(&M);
+        let v = Vector::from(vec![1.0, 4.0, 5.0]);
+        let mut z = Vector::new(v.len());
+        let jacobi = Jacobi::new(&M)?;
 
-        pc.preconditioning(&mut v)?;
+        jacobi.preconditioning(&v, &mut z)?;
 
-        assert_eq!(v, Vector::from(vec![1.0; 3]));
+        assert_eq!(z, Vector::from(vec![1.0; 3]));
 
         Ok(())
     }

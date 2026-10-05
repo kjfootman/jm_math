@@ -14,7 +14,7 @@ fn main() -> Result<(), Error> {
     let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
-    match gs.solve(&M, &pc::NoPreconditioner, &b, &mut x) {
+    match gs.solve(&M, &pc::Idendity, &b, &mut x) {
         Ok(_) => {
             log::info!(
                 "Converged - iteration: {} - residual: {:.2E}",

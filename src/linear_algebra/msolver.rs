@@ -12,7 +12,9 @@ use crate::{
 
 pub trait MSolver {
     fn iter(&self) -> usize;
+
     fn residual(&self) -> f64;
+
     fn solve<'a, T: pc::Preconditioner>(
         &mut self,
         matrix: &'a CSRMatrix,

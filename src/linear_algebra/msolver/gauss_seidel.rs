@@ -215,7 +215,7 @@ mod tests {
             .build();
         let mut x = Vector::new(rows);
         // let jacobi = pc::Jacobi::new(&M);
-        gs.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
+        gs.solve(&M, &pc::Idendity, &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
