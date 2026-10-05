@@ -141,9 +141,11 @@ fn conjugate_gradient(bencher: Bencher, path: &str) {
                 .with_max_iter(5000)
                 .with_tolerance(1E-12)
                 .build();
-            cg.solve(&M, &pc::NoPreconditioner, &b, &mut x).unwrap();
 
-            // println!("{}", cg.iter());
-            // println!("{}", cg.residual());
+            // case1
+            cg.solve(&M, &pc::Idendity, &b, &mut x).unwrap();
+
+            // case2
+            // cg.solve(&M, &pc::Jacobi::new(&M), &b, &mut x).unwrap();
         });
 }
