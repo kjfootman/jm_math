@@ -5,15 +5,15 @@ use crate::error::Error;
 pub use identity::Idendity;
 pub use jacobi::Jacobi;
 
-// pub struct NoPreconditioner;
+enum PreconType {
+    Identity(&'static str),
+    Jacobi(&'static str),
+    SOR(&'static str, f32),
+    SSOR(&'static str, f32),
+    ILU(&'static str),
+}
 
 pub trait Preconditioner {
+    fn label(&self) -> &'static str;
     fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error>;
 }
-//
-// impl Preconditioner for NoPreconditioner {
-//     fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error> {
-//         inplace.copy_from_slice(v);
-//         Ok(())
-//     }
-// }
