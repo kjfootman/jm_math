@@ -1,17 +1,19 @@
+mod identity;
 mod jacobi;
 
 use crate::error::Error;
+pub use identity::Idendity;
 pub use jacobi::Jacobi;
 
-pub struct NoPreconditioner;
-
-pub trait Preconditioner {
-    fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error>;
+enum PreconType {
+    Identity(&'static str),
+    Jacobi(&'static str),
+    SOR(&'static str, f32),
+    SSOR(&'static str, f32),
+    ILU(&'static str),
 }
 
-impl Preconditioner for NoPreconditioner {
-    fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error> {
-        inplace.copy_from_slice(v);
-        Ok(())
-    }
+pub trait Preconditioner {
+    fn label(&self) -> &'static str;
+    fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error>;
 }

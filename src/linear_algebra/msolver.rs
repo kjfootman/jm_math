@@ -10,10 +10,21 @@ use crate::{
     linear_algebra::{matrix::csr::CSRMatrix, preconditioner as pc, vector::Vector},
 };
 
+#[derive(Debug)]
+#[allow(clippy::upper_case_acronyms)]
+enum MSolverType {
+    GS(&'static str),
+    SOR(&'static str, f32),
+    CG(&'static str),
+    GMRES(&'static str, u16),
+}
+
 pub trait MSolver {
     fn iter(&self) -> usize;
 
     fn residual(&self) -> f64;
+
+    fn label(&self) -> &'static str;
 
     fn solve<'a, T: pc::Preconditioner>(
         &mut self,
