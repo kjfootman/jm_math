@@ -1,10 +1,15 @@
 use crate::{
     error::Error,
-    linear_algebra::{matrix::csr::CSRMatrix, preconditioner::Preconditioner, simd},
+    linear_algebra::{
+        matrix::csr::CSRMatrix,
+        preconditioner::{PreconType, Preconditioner},
+        simd,
+    },
 };
 
 pub struct Jacobi {
     // inverse values of the diagonal elements.
+    ty: PreconType,
     diag_values: Vec<f64>,
 }
 
@@ -20,11 +25,30 @@ impl Jacobi {
             .map(|&idx| values[idx as usize].recip())
             .collect();
 
-        Ok(Jacobi { diag_values })
+        Ok(Jacobi {
+            ty: PreconType::Jacobi("with Jacobi preconditioner"),
+            diag_values,
+        })
     }
 }
 
+// impl Default for Jacobi {
+//     fn default() -> Self {
+//         Self {
+//             ty: PreconType::Jacobi("with Jacobi preconditioner"),
+//             ..Default::default()
+//         }
+//     }
+// }
+
 impl Preconditioner for Jacobi {
+    fn label(&self) -> &'static str {
+        match self.ty {
+            PreconType::Jacobi(lable) => lable,
+            _ => "with Jacobi preconditioner",
+        }
+    }
+
     fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error> {
         // method1: without simd
         // inplace

@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use jm_lib::prelude::*;
+use jm_lib::{linear_algebra::preconditioner::Preconditioner, prelude::*};
 use std::time::Instant;
 
 fn main() -> Result<(), Error> {
@@ -14,15 +14,12 @@ fn main() -> Result<(), Error> {
     let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
-    // let precon = pc::NoPreconditioner;
+    // let precon = pc::Idendity::new();
     let precon = pc::Jacobi::new(&M)?;
     match cg.solve(&M, &precon, &b, &mut x) {
         Ok(_) => {
-            log::info!(
-                "Converged - iteration: {} - residual: {:.2E}",
-                cg.iter(),
-                cg.residual()
-            );
+            log::info!("Solver: {} {}", cg.label(), precon.label());
+            log::info!("Iteration: {}, Residual: {:.2E}", cg.iter(), cg.residual());
         }
         Err(e) => {
             log::error!("{e}");
