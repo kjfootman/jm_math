@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     linear_algebra::{
         matrix::{Matrix, csr::CSRMatrix},
-        msolver::MSolver,
+        msolver::{MSolver, MSolverType},
         preconditioner as pc,
         vector::Vector,
     },
@@ -10,6 +10,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct GaussSeidel {
+    ty: MSolverType,
     residual: f64,
     tolerance: f64,
     iter_max: usize,
@@ -56,6 +57,7 @@ impl Workspace {
 impl Default for GaussSeidel {
     fn default() -> Self {
         GaussSeidel {
+            ty: MSolverType::GS("Gauss Seidel"),
             residual: f64::MAX,
             tolerance: 1E-7,
             iter_max: 500,
@@ -99,6 +101,13 @@ impl MSolver for GaussSeidel {
 
     fn residual(&self) -> f64 {
         self.residual
+    }
+
+    fn label(&self) -> &'static str {
+        match self.ty {
+            MSolverType::GS(label) => label,
+            _ => "Gauss Seidel",
+        }
     }
 
     /// Solves the systems of euqations with Gauss-Seidel method.
@@ -215,7 +224,7 @@ mod tests {
             .build();
         let mut x = Vector::new(rows);
         // let jacobi = pc::Jacobi::new(&M);
-        gs.solve(&M, &pc::Idendity, &b, &mut x)?;
+        gs.solve(&M, &pc::Idendity::new(), &b, &mut x)?;
 
         println!(
             "iter: {}, residual: {:.2E}, sol: {:#.4?}",
