@@ -5,6 +5,7 @@ use crate::error::Error;
 pub use identity::Idendity;
 pub use jacobi::Jacobi;
 
+#[allow(clippy::upper_case_acronyms)]
 enum PreconType {
     Identity(&'static str),
     Jacobi(&'static str),
