@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     linear_algebra::{
         matrix::{Matrix, csr::CSRMatrix},
-        msolver::{MSolver, MSolverType},
+        msolver::MSolver,
         preconditioner as pc, simd,
         vector::Vector,
     },
@@ -10,7 +10,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ConjugateGradient {
-    ty: MSolverType,
+    ty: &'static str,
     residual: f64,
     tolerance: f64,
     max_iter: usize,
@@ -27,7 +27,7 @@ pub struct ConjugateGradientBuilder {
 impl Default for ConjugateGradient {
     fn default() -> Self {
         ConjugateGradient {
-            ty: MSolverType::CG("Conjugate Gradient"),
+            ty: "Conjugate Gradient",
             residual: f64::MAX,
             tolerance: 1E-7,
             max_iter: 500,
@@ -102,10 +102,7 @@ impl MSolver for ConjugateGradient {
     }
 
     fn label(&self) -> &'static str {
-        match self.ty {
-            MSolverType::CG(label) => label,
-            _ => "Conjugate Gradient",
-        }
+        self.ty
     }
 
     fn solve<'a, T: pc::Preconditioner>(
