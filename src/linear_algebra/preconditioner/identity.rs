@@ -1,34 +1,17 @@
-use crate::{
-    error::Error,
-    linear_algebra::preconditioner::{PreconType, Preconditioner},
-};
+use crate::{error::Error, linear_algebra::preconditioner::Preconditioner};
 
-pub struct Idendity {
-    ty: PreconType,
-}
+#[derive(Default)]
+pub struct Idendity;
 
 impl Idendity {
     pub fn new() -> Self {
-        Self {
-            ty: PreconType::Identity("without preconditioner"),
-        }
-    }
-}
-
-impl Default for Idendity {
-    fn default() -> Self {
-        Self {
-            ty: PreconType::Identity("without preconditioner"),
-        }
+        Idendity
     }
 }
 
 impl Preconditioner for Idendity {
     fn label(&self) -> &'static str {
-        match self.ty {
-            PreconType::Identity(value) => value,
-            _ => "without preconditioner",
-        }
+        "without preconditioner"
     }
 
     fn preconditioning(&self, v: &[f64], inplace: &mut [f64]) -> Result<(), Error> {
