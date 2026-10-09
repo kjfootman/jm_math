@@ -3,6 +3,7 @@ use crate::{
     linear_algebra::{matrix::csr::CSRMatrix, preconditioner::Preconditioner, simd},
 };
 
+// TODO 자사용 가능하도록 매소드 추가 필요
 pub struct Jacobi {
     // inverse values of the diagonal elements.
     diag_values: Vec<f64>,

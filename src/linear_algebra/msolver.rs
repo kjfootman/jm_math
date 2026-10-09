@@ -21,7 +21,7 @@ use crate::{
 pub trait MSolver {
     fn iter(&self) -> usize;
     fn residual(&self) -> f64;
-    fn label(&self) -> &'static str;
+    fn label(&self) -> &str;
 
     fn solve<'a, T: pc::Preconditioner>(
         &mut self,
