@@ -101,7 +101,7 @@ impl MSolver for ConjugateGradient {
         self.residual
     }
 
-    fn label(&self) -> &'static str {
+    fn label(&self) -> &str {
         self.ty
     }
 
@@ -224,12 +224,12 @@ mod tests {
             values,
         });
         let b = Vector::from(vec![6.0, 3.0, 7.0, 8.0]);
+        let mut x = Vector::new(rows);
 
         let mut cg = ConjugateGradientBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
             .build();
-        let mut x = Vector::new(rows);
 
         // cg.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
         cg.solve(&M, &pc::Jacobi::new(&M)?, &b, &mut x)?;

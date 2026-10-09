@@ -103,7 +103,7 @@ impl MSolver for GaussSeidel {
         self.residual
     }
 
-    fn label(&self) -> &'static str {
+    fn label(&self) -> &str {
         self.ty
     }
 
