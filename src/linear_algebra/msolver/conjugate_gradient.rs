@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     linear_algebra::{
         matrix::{Matrix, csr::CSRMatrix},
-        msolver::{MSolver, MSolverType},
+        msolver::MSolver,
         preconditioner as pc, simd,
         vector::Vector,
     },
@@ -10,7 +10,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ConjugateGradient {
-    ty: MSolverType,
+    ty: &'static str,
     residual: f64,
     tolerance: f64,
     max_iter: usize,
@@ -27,7 +27,7 @@ pub struct ConjugateGradientBuilder {
 impl Default for ConjugateGradient {
     fn default() -> Self {
         ConjugateGradient {
-            ty: MSolverType::CG("Conjugate Gradient"),
+            ty: "Conjugate Gradient",
             residual: f64::MAX,
             tolerance: 1E-7,
             max_iter: 500,
@@ -101,11 +101,8 @@ impl MSolver for ConjugateGradient {
         self.residual
     }
 
-    fn label(&self) -> &'static str {
-        match self.ty {
-            MSolverType::CG(label) => label,
-            _ => "Conjugate Gradient",
-        }
+    fn label(&self) -> &str {
+        self.ty
     }
 
     fn solve<'a, T: pc::Preconditioner>(
@@ -227,12 +224,12 @@ mod tests {
             values,
         });
         let b = Vector::from(vec![6.0, 3.0, 7.0, 8.0]);
+        let mut x = Vector::new(rows);
 
         let mut cg = ConjugateGradientBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
             .build();
-        let mut x = Vector::new(rows);
 
         // cg.solve(&M, &pc::NoPreconditioner, &b, &mut x)?;
         cg.solve(&M, &pc::Jacobi::new(&M)?, &b, &mut x)?;
