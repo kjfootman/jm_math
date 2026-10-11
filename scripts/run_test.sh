@@ -4,7 +4,8 @@
 # TEST_NAME="csr_diagonal"
 # TEST_NAME="gauss_seidel"
 # TEST_NAME="vector_spmv"
-TEST_NAME="conjugate_gradient"
+# TEST_NAME="conjugate_gradient"
+TEST_NAME="gmres"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
