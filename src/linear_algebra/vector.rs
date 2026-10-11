@@ -10,7 +10,7 @@ use log::error;
 use rayon::prelude::*;
 use std::{
     io::BufRead,
-    ops::{Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Range},
+    ops::{Deref, DerefMut, DivAssign, Index, IndexMut, MulAssign, Neg, Range},
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -118,6 +118,21 @@ impl Vector {
 
         let arch = simd::arch();
         arch.dispatch(simd::VectorScaleAddAssign(self, scale, a));
+
+        Ok(())
+    }
+
+    pub fn scale_sub_assign(&mut self, scale: f64, a: &[f64]) -> Result<(), Error> {
+        //  self -= scale * a
+
+        if self.len() != a.len() {
+            let msg = "Cannot scale and add assign vectors of different dimensions";
+            error!("{msg}");
+            Err(Error::DimensionMismatch(msg.into()))?
+        }
+
+        let arch = simd::arch();
+        arch.dispatch(simd::VectorScaleAddAssign(self, -scale, a));
 
         Ok(())
     }

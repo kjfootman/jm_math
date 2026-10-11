@@ -1,7 +1,13 @@
+use std::ops::DivAssign;
+
 use crate::{
     error::Error,
     linear_algebra::{
-        matrix::{Matrix, csr::CSRMatrix},
+        matrix::{
+            Matrix,
+            csr::CSRMatrix,
+            dense::{DenseMatrix, DenseMatrixArgs},
+        },
         msolver::MSolver,
         preconditioner as pc, simd,
         vector::Vector,
@@ -58,7 +64,7 @@ impl MSolver for Gmres {
         let (m, n) = (A.rows(), A.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
-        let restart = self.restart;
+        let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
@@ -66,9 +72,9 @@ impl MSolver for Gmres {
         // TODO: restart > m 일 경우 처리
 
         let workspace = &mut self.workspace;
-        workspace.set_workspace(m, restart);
+        workspace.set_workspace(m, *restart);
 
-        let mut h;
+        // let mut h;
         let r = &mut workspace.r;
         let w = &mut workspace.w;
         let V = &mut workspace.V;
@@ -87,7 +93,7 @@ impl MSolver for Gmres {
         v.scale(beta.recip(), r);
 
         while *residual > tol && *iter < max_iter {
-            for j in 0..restart {
+            for j in 0..*restart {
                 // 4. w = A * M^-1 * v[j]
                 v = &mut V[j];
                 // 4.1 r = M^-1 * v[j] (결과를 r에 덮어쓰기)
@@ -96,12 +102,27 @@ impl MSolver for Gmres {
                 w.csr_spmv2(A, r)?;
 
                 // 5. Arnoldi process
+                let h = H.column_mut(j);
                 for i in 0..j + 1 {
                     let v = &V[i];
-                    h = &mut H[j * (m + 1)..(j + 1) * (m + 1)];
-                    w.scale_add_assign(h[i], v)?;
+                    h[i] = w.dot(v)?;
+                    w.scale_sub_assign(h[i], v)?;
                 }
+
+                h[j + 1] = w.magnitude()?;
+
+                if h[j + 1].abs() < tol {
+                    log::debug!("lucky breakdown");
+                    *restart = j + 1;
+                    break;
+                }
+
+                v = &mut V[j + 1];
+                v.scale(h[j + 1].recip(), w);
             }
+
+            // Given's rotation
+            // update solution
 
             *iter += 1;
         }
@@ -161,7 +182,7 @@ struct Workspace {
     pub r: Vector,
     pub w: Vector,
     pub V: Vec<Vector>,
-    pub H: Vec<f64>,
+    pub H: DenseMatrix,
     pub cos: Vector,
     pub sin: Vector,
 }
@@ -180,10 +201,13 @@ impl Workspace {
             self.V.resize(restart, Vector::new(rows));
         }
 
-        // let H_len = rows * (rows + 1);
-        let H_len = (rows + 1) * restart;
-        if self.H.len() < H_len {
-            self.H.resize(H_len, 0.0);
+        let H_len = (restart + 1) * restart;
+        if self.H.values().len() < H_len {
+            self.H = DenseMatrix::from(DenseMatrixArgs {
+                rows: restart + 1,
+                cols: restart,
+                values: vec![0.0; H_len],
+            });
         }
 
         if self.cos.len() < restart {
@@ -204,8 +228,13 @@ mod tests {
         preconditioner as pc,
     };
 
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
     #[test]
     fn gmres() -> Result<(), Error> {
+        init();
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 5, 9, 12];
         let col_indices = vec![0, 2, 3, 1, 2, 0, 1, 2, 3, 0, 2, 3];
