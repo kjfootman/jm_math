@@ -68,6 +68,7 @@ impl MSolver for Gmres {
         let workspace = &mut self.workspace;
         workspace.set_workspace(m, restart);
 
+        let mut h;
         let r = &mut workspace.r;
         let w = &mut workspace.w;
         let V = &mut workspace.V;
@@ -85,10 +86,24 @@ impl MSolver for Gmres {
         let mut v = &mut V[0];
         v.scale(beta.recip(), r);
 
-        for j in 0..restart + 1 {
-            // w = A * M^-1 * v[j]
-            v = &mut V[j];
-            M.preconditioning(v, w)?;
+        while *residual > tol && *iter < max_iter {
+            for j in 0..restart {
+                // 4. w = A * M^-1 * v[j]
+                v = &mut V[j];
+                // 4.1 r = M^-1 * v[j] (결과를 r에 덮어쓰기)
+                M.preconditioning(v, r)?;
+                // 4.2 w = A * r
+                w.csr_spmv2(A, r)?;
+
+                // 5. Arnoldi process
+                for i in 0..j + 1 {
+                    let v = &V[i];
+                    h = &mut H[j * (m + 1)..(j + 1) * (m + 1)];
+                    w.scale_add_assign(h[i], v)?;
+                }
+            }
+
+            *iter += 1;
         }
 
         Ok(())
@@ -165,7 +180,8 @@ impl Workspace {
             self.V.resize(restart, Vector::new(rows));
         }
 
-        let H_len = rows * (rows + 1);
+        // let H_len = rows * (rows + 1);
+        let H_len = (rows + 1) * restart;
         if self.H.len() < H_len {
             self.H.resize(H_len, 0.0);
         }

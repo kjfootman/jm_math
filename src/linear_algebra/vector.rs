@@ -93,7 +93,7 @@ impl Vector {
     }
 
     pub fn scale_add(&mut self, b: &[f64], scale: f64, a: &[f64]) -> Result<(), Error> {
-        // b + scale * a
+        // self = b + scale * a
 
         if a.len() != b.len() {
             let msg = "Cannot scale and add vectors of different dimensions";
