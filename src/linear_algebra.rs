@@ -1,3 +1,4 @@
+pub mod givens;
 pub mod matrix;
 pub mod msolver;
 pub mod preconditioner;
