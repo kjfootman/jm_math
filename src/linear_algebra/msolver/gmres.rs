@@ -1,8 +1,9 @@
-use std::ops::DivAssign;
+use log::error;
 
 use crate::{
-    error::Error,
+    error::{self, Error},
     linear_algebra::{
+        givens::{self, compute_givens_rotation},
         matrix::{
             Matrix,
             csr::CSRMatrix,
@@ -70,6 +71,9 @@ impl MSolver for Gmres {
         let b_mag = b.magnitude()?;
 
         // TODO: restart > m 일 경우 처리
+        if *restart >= m {
+            log::error!("Restart number must be less then the number of {m}");
+        }
 
         let workspace = &mut self.workspace;
         workspace.set_workspace(m, *restart);
@@ -111,6 +115,17 @@ impl MSolver for Gmres {
 
                 h[j + 1] = w.magnitude()?;
 
+                // H[j] 에 given's rotation 적용
+                for i in 0..j {
+                    let h0 = h[i];
+                    let h1 = h[i + 1];
+                    let c = cos[i];
+                    let s = sin[i];
+                    (h[i], h[i + 1]) = givens::apply_givens_rotation(h0, h1, c, s);
+                }
+
+                (cos[j], sin[j]) = compute_givens_rotation(h[j], h[j + 1]);
+
                 if h[j + 1].abs() < tol {
                     log::debug!("lucky breakdown");
                     *restart = j + 1;
@@ -119,9 +134,10 @@ impl MSolver for Gmres {
 
                 v = &mut V[j + 1];
                 v.scale(h[j + 1].recip(), w);
+
+                (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
             }
 
-            // Given's rotation
             // update solution
 
             *iter += 1;
@@ -198,7 +214,7 @@ impl Workspace {
         }
 
         if self.V.len() < restart {
-            self.V.resize(restart, Vector::new(rows));
+            self.V.resize(restart + 1, Vector::new(rows));
         }
 
         let H_len = (restart + 1) * restart;
@@ -215,7 +231,7 @@ impl Workspace {
         }
 
         if self.sin.len() < restart {
-            self.cos.resize(restart, 0.0);
+            self.sin.resize(restart, 0.0);
         }
     }
 }
@@ -255,7 +271,7 @@ mod tests {
         let mut gmres = GmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(4)
+            .with_restart(3)
             .build()?;
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;
