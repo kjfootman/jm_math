@@ -25,7 +25,7 @@
 - [ ] SOR(w) 솔버 개발
 - [ ] GMRES 솔버 개발
   - [ ] Given's rotation 개발
-  - [ ] HGMRES 솔버 개발
+- [ ] HGMRES 솔버 개발
 - [x] Conjugate Gradient 솔버 개발
 - [x] Gauss-Seidel 솔버 bound check 해제
 - [ ] 각 솔버 별 initialize 매소드 추가
