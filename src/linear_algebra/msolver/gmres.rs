@@ -1,7 +1,5 @@
-use log::error;
-
 use crate::{
-    error::{self, Error},
+    error::Error,
     linear_algebra::{
         givens::{self, compute_givens_rotation},
         matrix::{
@@ -71,7 +69,7 @@ impl MSolver for Gmres {
         let b_mag = b.magnitude()?;
 
         // TODO: restart > m 일 경우 처리
-        if *restart >= m {
+        if *restart > m {
             log::error!("Restart number must be less then the number of {m}");
         }
 
@@ -81,6 +79,7 @@ impl MSolver for Gmres {
         // let mut h;
         let r = &mut workspace.r;
         let w = &mut workspace.w;
+        let g = &mut workspace.g;
         let V = &mut workspace.V;
         let H = &mut workspace.H;
         let cos = &mut workspace.cos;
@@ -95,6 +94,10 @@ impl MSolver for Gmres {
         // 3. v0 = r0 / beta
         let mut v = &mut V[0];
         v.scale(beta.recip(), r);
+
+        // 4. g = beta * e0
+        g.fill(0.0);
+        g[0] = b_mag;
 
         while *residual > tol && *iter < max_iter {
             for j in 0..*restart {
@@ -121,10 +124,14 @@ impl MSolver for Gmres {
                     let h1 = h[i + 1];
                     let c = cos[i];
                     let s = sin[i];
+
                     (h[i], h[i + 1]) = givens::apply_givens_rotation(h0, h1, c, s);
                 }
 
                 (cos[j], sin[j]) = compute_givens_rotation(h[j], h[j + 1]);
+
+                let g0 = g[j];
+                g[j] = g0 * cos[j];
 
                 if h[j + 1].abs() < tol {
                     log::debug!("lucky breakdown");
@@ -136,7 +143,10 @@ impl MSolver for Gmres {
                 v.scale(h[j + 1].recip(), w);
 
                 (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
+                g[j + 1] = -g0 * sin[j];
             }
+
+            // solve the lower triangular
 
             // update solution
 
@@ -196,6 +206,7 @@ impl GmresBuilder {
 #[derive(Debug, Default)]
 struct Workspace {
     pub r: Vector,
+    pub g: Vector,
     pub w: Vector,
     pub V: Vec<Vector>,
     pub H: DenseMatrix,
@@ -213,8 +224,12 @@ impl Workspace {
             self.w.resize(rows, 0.0);
         }
 
-        if self.V.len() < restart {
+        if self.V.len() < restart + 1 {
             self.V.resize(restart + 1, Vector::new(rows));
+        }
+
+        if self.g.len() < restart + 1 {
+            self.g.resize(restart + 1, 0.0);
         }
 
         let H_len = (restart + 1) * restart;
@@ -271,7 +286,7 @@ mod tests {
         let mut gmres = GmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(3)
+            .with_restart(4)
             .build()?;
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;
