@@ -8,7 +8,7 @@ use crate::{
             dense::{DenseMatrix, DenseMatrixArgs},
         },
         msolver::MSolver,
-        preconditioner as pc, simd,
+        preconditioner as pc, simd, triangular,
         vector::Vector,
     },
 };
@@ -80,26 +80,27 @@ impl MSolver for Gmres {
         let r = &mut workspace.r;
         let w = &mut workspace.w;
         let g = &mut workspace.g;
+        let y = &mut workspace.y;
         let V = &mut workspace.V;
         let H = &mut workspace.H;
         let cos = &mut workspace.cos;
         let sin = &mut workspace.sin;
 
-        // 1. r0 = b - A * x0
-        r.calc_residual(b, A, x)?;
-
-        // 2. beta = |r0|
-        let beta = r.magnitude()?;
-
-        // 3. v0 = r0 / beta
-        let mut v = &mut V[0];
-        v.scale(beta.recip(), r);
-
-        // 4. g = beta * e0
-        g.fill(0.0);
-        g[0] = b_mag;
-
         while *residual > tol && *iter < max_iter {
+            // 1. r0 = b - A * x0
+            r.calc_residual(b, A, x)?;
+
+            // 2. beta = |r0|
+            let beta = r.magnitude()?;
+
+            // 3. v0 = r0 / beta
+            let mut v = &mut V[0];
+            v.scale(beta.recip(), r);
+
+            // 4. g = beta * e0
+            g.fill(0.0);
+            g[0] = beta;
+
             for j in 0..*restart {
                 // 4. w = A * M^-1 * v[j]
                 v = &mut V[j];
@@ -144,9 +145,12 @@ impl MSolver for Gmres {
 
                 (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
                 g[j + 1] = -g0 * sin[j];
+
+                *residual = g[j + 1].abs();
             }
 
             // solve the lower triangular
+            triangular::solve_upper_triangular(H.values(), &g[0..*restart], y)?;
 
             // update solution
 
@@ -206,12 +210,13 @@ impl GmresBuilder {
 #[derive(Debug, Default)]
 struct Workspace {
     pub r: Vector,
-    pub g: Vector,
+    pub g: Vec<f64>,
     pub w: Vector,
+    pub y: Vec<f64>,
     pub V: Vec<Vector>,
     pub H: DenseMatrix,
-    pub cos: Vector,
-    pub sin: Vector,
+    pub cos: Vec<f64>,
+    pub sin: Vec<f64>,
 }
 
 impl Workspace {
@@ -230,6 +235,10 @@ impl Workspace {
 
         if self.g.len() < restart + 1 {
             self.g.resize(restart + 1, 0.0);
+        }
+
+        if self.y.len() < restart {
+            self.y.resize(restart, 0.0);
         }
 
         let H_len = (restart + 1) * restart;
