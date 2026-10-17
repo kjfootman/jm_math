@@ -1,0 +1,54 @@
+#![allow(non_snake_case)]
+use jm_lib::{linear_algebra::preconditioner::Preconditioner, prelude::*};
+use std::time::Instant;
+
+fn main() -> Result<(), Error> {
+    env_logger::builder().is_test(false).try_init()?;
+
+    let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
+    let b = get_source(&M);
+    let mut gmres = msolver::GmresBuilder::new()
+        .with_max_iter(5000)
+        .with_restart(10)
+        .with_tolerance(1E-12)
+        .build()?;
+    let mut x = Vector::new(M.rows());
+
+    let start = Instant::now();
+    // let precon = pc::Idendity::new();
+    let precon = pc::Jacobi::new(&M)?;
+    match gmres.solve(&M, &precon, &b, &mut x) {
+        Ok(_) => {
+            log::info!("Solver: {} {}", gmres.label(), precon.label());
+            log::info!(
+                "Iteration: {}, Residual: {:.2E}",
+                gmres.iter(),
+                gmres.residual()
+            );
+        }
+        Err(e) => {
+            log::error!("{e}");
+        }
+    }
+
+    log::info!("Elapsed time: {:.2} sec", start.elapsed().as_secs_f32());
+
+    Ok(())
+}
+
+fn get_source(M: &CSRMatrix) -> Vector {
+    let ia = M.row_ptr();
+    let aa = M.values();
+
+    let arr = ia
+        .windows(2)
+        .map(|range| {
+            let start = range[0] as usize;
+            let end = range[1] as usize;
+
+            aa[start..end].iter().sum::<f64>()
+        })
+        .collect::<Vec<_>>();
+
+    Vector::from(arr)
+}

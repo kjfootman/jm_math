@@ -1,14 +1,14 @@
 use crate::{
     error::Error,
     linear_algebra::{
-        givens::{self, compute_givens_rotation},
+        givens,
         matrix::{
             Matrix,
             csr::CSRMatrix,
             dense::{DenseMatrix, DenseMatrixArgs},
         },
         msolver::MSolver,
-        preconditioner as pc, simd, triangular,
+        preconditioner as pc, triangular,
         vector::Vector,
     },
 };
@@ -67,6 +67,9 @@ impl MSolver for Gmres {
         let tol = self.tolerance;
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
+
+        *iter = 0;
+        *residual = f64::MAX;
 
         // TODO: restart > m 일 경우 처리
         if *restart > m {
@@ -129,32 +132,39 @@ impl MSolver for Gmres {
                     (h[i], h[i + 1]) = givens::apply_givens_rotation(h0, h1, c, s);
                 }
 
-                (cos[j], sin[j]) = compute_givens_rotation(h[j], h[j + 1]);
-
-                let g0 = g[j];
-                g[j] = g0 * cos[j];
-
                 if h[j + 1].abs() < tol {
                     log::debug!("lucky breakdown");
                     *restart = j + 1;
                     break;
                 }
 
+                // v[j + 1] 업데이트
                 v = &mut V[j + 1];
                 v.scale(h[j + 1].recip(), w);
 
+                (cos[j], sin[j]) = givens::compute_givens_rotation(h[j], h[j + 1]);
                 (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
-                g[j + 1] = -g0 * sin[j];
 
-                *residual = g[j + 1].abs();
+                g[j + 1] = -g[j] * sin[j];
+                g[j] *= cos[j];
             }
 
             // solve the lower triangular
-            triangular::solve_upper_triangular(H.values(), &g[0..*restart], y)?;
+            triangular::solve_upper_triangular(H.values(), g, y)?;
 
             // update solution
+            r.fill(0.0);
+            for i in 0..*restart {
+                v = &mut V[i];
+                v.scale_assign(y[i]);
+                r.add_assign(v)?;
+            }
+
+            M.preconditioning(r, w)?;
+            x.add_assign(w)?;
 
             *iter += 1;
+            *residual = g[*restart].abs() / b_mag;
         }
 
         Ok(())
@@ -196,7 +206,7 @@ impl GmresBuilder {
         })?;
 
         let gmres = Gmres {
-            kind: format!("GMRES(restart)"),
+            kind: format!("GMRES({restart})"),
             tolerance: self.tolerance.unwrap_or_default(),
             max_iter: self.max_iter.unwrap_or_default(),
             restart,
@@ -295,10 +305,12 @@ mod tests {
         let mut gmres = GmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(4)
+            .with_restart(3)
             .build()?;
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;
+
+        log::debug!("iter: {}, residual: {:.2E}", gmres.iter(), gmres.residual());
 
         Ok(())
     }
