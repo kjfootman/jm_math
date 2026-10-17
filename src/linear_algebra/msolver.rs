@@ -4,6 +4,7 @@ mod gmres;
 
 pub use conjugate_gradient::ConjugateGradientBuilder;
 pub use gauss_seidel::GaussSeidelBuilder;
+pub use gmres::GmresBuilder;
 
 use crate::{
     error::Error,

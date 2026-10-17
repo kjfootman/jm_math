@@ -1,15 +1,27 @@
 use crate::error::Error;
 
 pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> Result<(), Error> {
-    let m = source.len();
+    let mut m = source.len();
+    let lda = m;
+
+    if matrix.len() != m * m {
+        m -= 1;
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        assert_eq!(
+            matrix.len(),
+            lda * m,
+            "Matrix dimensions do not match source length."
+        );
+    }
 
     for i in (0..m).rev() {
         let mut sum = source[i];
-        let diag = matrix[i * (m + 2)];
+        let diag = matrix[i + lda * i];
 
-        sum -= (i + 1..m)
-            .map(|j| matrix[i + (m + 1) * j] * x[j])
-            .sum::<f64>();
+        sum -= (i + 1..m).map(|j| matrix[i + lda * j] * x[j]).sum::<f64>();
 
         if diag.abs() < 1e-14 {
             return Err(Error::MissingDiagonal(i));

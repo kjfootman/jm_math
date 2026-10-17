@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # EXAMPLE="gauss_seidel_demo"
-EXAMPLE="conjugate_gradient_demo"
+# EXAMPLE="conjugate_gradient_demo"
+EXAMPLE="gmres_demo"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
