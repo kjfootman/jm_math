@@ -13,18 +13,19 @@
 - simd fused multiply 구현
   - [x] simd::VectorScaleAdd 구현
   - [x] simd::VectorScaleAddAssign 구현
-  - [ ] simd::VectorScaleSub 구현
-  - [ ] simd::VectorScaleSubAssign 구현
-- [ ] DenseMatrix 개발
-  - [ ] Matrix 트레이트 구현
+  - ~~simd::VectorScaleSub 구현~~
+  - ~~simd::VectorScaleSubAssign 구현~~
+- [x] DenseMatrix 개발
+  - [x] Matrix 트레이트 구현
 - `MSolver::solve` 메소드의 preconditioner 인자를 `Option<T>` 타입으로 넘길 경우 None 타입 추론 에러 발생
 - [x] SPMV 연산 bound check 해제
 
 ## 솔버 개발
 
 - [ ] SOR(w) 솔버 개발
-- [ ] GMRES 솔버 개발
-  - [ ] Given's rotation 개발
+- [x] GMRES 솔버 개발
+  - [x] Given's rotation 개발
+  - [ ] bound_uncheck 적용
 - [ ] HGMRES 솔버 개발
 - [x] Conjugate Gradient 솔버 개발
 - [x] Gauss-Seidel 솔버 bound check 해제

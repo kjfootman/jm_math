@@ -72,10 +72,14 @@ impl MSolver for Gmres {
         *residual = f64::MAX;
 
         if *restart > m {
-            log::warn!(
-                "Restart number must be less then the number of {m}.\nSet the restart number as {m}"
-            );
+            log::warn!("Restart number must be less than {m}. Setting restart number to {m}.");
             *restart = m;
+        }
+
+        if n != x.len() {
+            return Err(Error::DimensionMismatch(
+                "Matrix and solution vector dimensions do not match".to_string(),
+            ));
         }
 
         let workspace = &mut self.workspace;
@@ -129,7 +133,6 @@ impl MSolver for Gmres {
                     let h1 = h[i + 1];
                     let c = cos[i];
                     let s = sin[i];
-
                     (h[i], h[i + 1]) = givens::apply_givens_rotation(h0, h1, c, s);
                 }
 
@@ -150,7 +153,7 @@ impl MSolver for Gmres {
                 g[j] *= cos[j];
             }
 
-            // solve the lower triangular
+            // solve the upper triangular
             triangular::solve_upper_triangular(H.values(), g, y)?;
 
             // update solution
