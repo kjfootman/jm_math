@@ -71,15 +71,16 @@ impl MSolver for Gmres {
         *iter = 0;
         *residual = f64::MAX;
 
-        // TODO: restart > m 일 경우 처리
         if *restart > m {
-            log::error!("Restart number must be less then the number of {m}");
+            log::warn!(
+                "Restart number must be less then the number of {m}.\nSet the restart number as {m}"
+            );
+            *restart = m;
         }
 
         let workspace = &mut self.workspace;
         workspace.set_workspace(m, *restart);
 
-        // let mut h;
         let r = &mut workspace.r;
         let w = &mut workspace.w;
         let g = &mut workspace.g;
@@ -165,6 +166,10 @@ impl MSolver for Gmres {
 
             *iter += 1;
             *residual = g[*restart].abs() / b_mag;
+
+            if *iter == max_iter {
+                log::warn!("Maximum iteration exceeded");
+            }
         }
 
         Ok(())
