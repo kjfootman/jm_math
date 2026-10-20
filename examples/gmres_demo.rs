@@ -8,7 +8,7 @@ fn main() -> Result<(), Error> {
     let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
     let b = get_source(&M);
     let mut gmres = msolver::GmresBuilder::new()
-        .with_max_iter(5000)
+        .with_max_iter(500)
         .with_restart(10)
         .with_tolerance(1E-12)
         .build()?;
@@ -17,6 +17,7 @@ fn main() -> Result<(), Error> {
     let start = Instant::now();
     // let precon = pc::Idendity::new();
     let precon = pc::Jacobi::new(&M)?;
+
     match gmres.solve(&M, &precon, &b, &mut x) {
         Ok(_) => {
             log::info!("Solver: {} {}", gmres.label(), precon.label());
