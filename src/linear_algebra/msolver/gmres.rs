@@ -7,7 +7,7 @@ use crate::{
             csr::CSRMatrix,
             dense::{DenseMatrix, DenseMatrixArgs},
         },
-        msolver::MSolver,
+        msolver::{MSolver, gmres},
         preconditioner as pc, triangular,
         vector::Vector,
     },
@@ -26,12 +26,13 @@ pub struct Gmres {
 
 impl Default for Gmres {
     fn default() -> Self {
+        let restart = 10;
         Self {
-            kind: "GMRES".to_string(),
+            kind: format!("GMRES({restart})"),
             residual: f64::MAX,
             tolerance: 1E-7,
             max_iter: 500,
-            restart: 10,
+            restart,
             iter: 0,
             workspace: Workspace::default(),
         }
@@ -208,20 +209,20 @@ impl GmresBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Gmres, Error> {
-        let restart = self.restart.ok_or_else(|| {
-            Error::ValueError("with_restart method is missing for GMRES solver".into())
-        })?;
-
-        let gmres = Gmres {
-            kind: format!("GMRES({restart})"),
+    pub fn build(self) -> Gmres {
+        let mut gmres = Gmres {
             tolerance: self.tolerance.unwrap_or_default(),
             max_iter: self.max_iter.unwrap_or_default(),
-            restart,
             ..Default::default()
         };
 
-        Ok(gmres)
+        if let Some(restart) = self.restart {
+            gmres.restart = restart
+        }
+
+        gmres.kind = format!("GMRES({})", gmres.restart);
+
+        gmres
     }
 }
 
@@ -314,7 +315,7 @@ mod tests {
             .with_max_iter(50)
             .with_tolerance(1E-7)
             .with_restart(3)
-            .build()?;
+            .build();
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;
 
