@@ -1,8 +1,9 @@
-mod conjugate_gradient;
+mod cg;
 mod gauss_seidel;
 mod gmres;
+mod hgmres;
 
-pub use conjugate_gradient::ConjugateGradientBuilder;
+pub use cg::ConjugateGradientBuilder;
 pub use gauss_seidel::GaussSeidelBuilder;
 pub use gmres::GmresBuilder;
 

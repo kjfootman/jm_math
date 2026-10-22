@@ -26,12 +26,12 @@ pub struct Gmres {
 
 impl Default for Gmres {
     fn default() -> Self {
-        Gmres {
+        Self {
             kind: "GMRES".to_string(),
             residual: f64::MAX,
             tolerance: 1E-7,
             max_iter: 500,
-            restart: 0,
+            restart: 10,
             iter: 0,
             workspace: Workspace::default(),
         }
