@@ -9,9 +9,9 @@ fn main() -> Result<(), Error> {
     let b = get_source(&M);
     let mut gmres = msolver::GmresBuilder::new()
         .with_max_iter(500)
-        .with_restart(10)
+        // .with_restart(15)
         .with_tolerance(1E-12)
-        .build()?;
+        .build();
     let mut x = Vector::new(M.rows());
 
     let start = Instant::now();
