@@ -4,7 +4,7 @@ pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> 
     let mut m = source.len();
     let lda = m;
 
-    if matrix.len() != m * m {
+    if x.len() != source.len() {
         m -= 1;
     }
 
