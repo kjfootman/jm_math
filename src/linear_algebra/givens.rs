@@ -1,4 +1,4 @@
-pub fn compute_givens_rotation(a: f64, b: f64) -> (f64, f64) {
+pub fn calc_givens_rotation(a: f64, b: f64) -> (f64, f64) {
     let r = (a.powi(2) + b.powi(2)).sqrt();
     (a / r, b / r)
 }
