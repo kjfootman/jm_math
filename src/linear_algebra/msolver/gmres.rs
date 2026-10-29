@@ -7,7 +7,7 @@ use crate::{
             csr::CSRMatrix,
             dense::{DenseMatrix, DenseMatrixArgs},
         },
-        msolver::{MSolver, gmres},
+        msolver::MSolver,
         preconditioner as pc, triangular,
         vector::Vector,
     },
@@ -147,7 +147,7 @@ impl MSolver for Gmres {
                 v = &mut V[j + 1];
                 v.scale(h[j + 1].recip(), w);
 
-                (cos[j], sin[j]) = givens::compute_givens_rotation(h[j], h[j + 1]);
+                (cos[j], sin[j]) = givens::calc_givens_rotation(h[j], h[j + 1]);
                 (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
 
                 g[j + 1] = -g[j] * sin[j];
