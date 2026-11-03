@@ -314,7 +314,8 @@ mod tests {
         let mut gmres = GmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(3)
+            // restart 최대 4까지 가능 --> basis 벡터 4개
+            .with_restart(4)
             .build();
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;
