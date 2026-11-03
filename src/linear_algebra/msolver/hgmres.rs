@@ -108,22 +108,27 @@ impl MSolver for Hgmres {
                 householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
 
                 // 4. calculate h[j-1] = P[j] * z;
-                let h = H.column_mut(j);
+                let h = if j != 0 {
+                    // j > 0 조건일 경우만 H[j-1]에 저장
+                    H.column_mut(j - 1)
+                } else {
+                    H.column_mut(j)
+                };
+
                 for i in 0..j + 1 {
                     let sigma = -2.0 * z.dot(u)?;
                     h[i] = z[i] + sigma * u[i];
                 }
 
                 if j == 0 {
-                    // beta = h[0];
-                    // g[0] = beta;
                     g[0] = h[0]
                 }
 
                 // 5. calculate v[j] = P[0] * P[1] * ... P[j] * e[j]
+                v.fill(0.0);
+                v[j] = 1.0;
                 for i in (0..j + 1).rev() {
-                    v.fill(0.0);
-                    v[i] = 1.0;
+                    let u = &U[i];
                     householder::transform(u, v);
                 }
 
@@ -134,7 +139,7 @@ impl MSolver for Hgmres {
 
                 // 6. j != 0일때 H[j] 에 given's rotation 적용
                 if j != 0 {
-                    for i in 0..j {
+                    for i in 0..j - 1 {
                         let h0 = h[i];
                         let h1 = h[i + 1];
                         let c = cos[i];
@@ -142,18 +147,19 @@ impl MSolver for Hgmres {
                         (h[i], h[i + 1]) = givens::apply_givens_rotation(h0, h1, c, s);
                     }
 
-                    if h[j + 1].abs() < tol {
+                    if h[j].abs() < tol {
                         log::debug!("lucky breakdown");
-                        *restart = j + 1;
+                        *restart = j;
                         break;
                     }
+
+                    (cos[j - 1], sin[j - 1]) = givens::calc_givens_rotation(h[j - 1], h[j]);
+                    (h[j - 1], h[j]) =
+                        givens::apply_givens_rotation(h[j - 1], h[j], cos[j - 1], sin[j - 1]);
+
+                    g[j] = -g[j - 1] * sin[j - 1];
+                    g[j - 1] *= cos[j - 1];
                 }
-
-                (cos[j], sin[j]) = givens::calc_givens_rotation(h[j], h[j + 1]);
-                (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
-
-                g[j + 1] = -g[j] * sin[j];
-                g[j] *= cos[j];
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
                 z.csr_spmv2(A, v)?;
@@ -161,6 +167,7 @@ impl MSolver for Hgmres {
                     let u = &U[i];
                     householder::transform(u, z);
                 }
+                println!();
             }
 
             // solve the upper triangular
@@ -278,7 +285,7 @@ impl Workspace {
             self.y.resize(restart, 0.0);
         }
 
-        let H_len = (restart + 2) * restart;
+        let H_len = (restart + 2) * (restart + 1);
         if self.H.values().len() < H_len {
             self.H = DenseMatrix::from(DenseMatrixArgs {
                 rows: restart + 2,
