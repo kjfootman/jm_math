@@ -26,9 +26,35 @@ pub fn calc_householder_vec(v: &[f64], inplace: &mut [f64]) {
     inplace[0] *= magnitude.recip();
 }
 
-pub fn transform(u: &[f64], v: &[f64], inplace: &mut [f64]) {
+pub fn transform(u: &[f64], v: &mut [f64]) {
     let arch = simd::arch();
     let sigma = arch.dispatch(simd::VectorDot(u, v));
 
-    arch.dispatch(simd::VectorScaleAdd(inplace, v, -2.0 * sigma, u));
+    // arch.dispatch(simd::VectorScaleAdd(inplace, v, -2.0 * sigma, u));
+    arch.dispatch(simd::VectorScaleAddAssign(v, -2.0 * sigma, u));
+}
+
+#[cfg(test)]
+mod tests {
+    // use crate::prelude::{Vector};
+    use super::*;
+
+    #[test]
+    fn househoder_transform() {
+        // TODO: rust_decimal 크레이트를 사용해서 부동소수점 오차 해결
+        let u = vec![0.859457, 0.138848, 0.323978, 0.370260];
+        let mut v = vec![6.0, 3.0, 7.0, 8.0];
+        let mag = u.iter().map(|&value| value * value).sum::<f64>().sqrt();
+
+        // assert |u| = 1.0
+        assert_eq!((1000.0 * mag).round() / 1000.0, 1.0);
+
+        transform(&u, &mut v);
+
+        // 소수점 5째 자리에서 반올림
+        v.iter_mut()
+            .for_each(|v| *v = (10000.0 * *v).round() / 10000.0);
+
+        assert_eq!(v, vec![-12.5698, 0.0, 0.0, 0.0]);
+    }
 }

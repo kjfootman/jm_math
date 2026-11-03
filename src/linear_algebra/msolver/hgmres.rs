@@ -85,7 +85,7 @@ impl MSolver for Hgmres {
         let workspace = &mut self.workspace;
         workspace.set_workspace(m, *restart);
 
-        // let r = &mut workspace.r;
+        let v = &mut workspace.v;
         let z = &mut workspace.z;
         let g = &mut workspace.g;
         let y = &mut workspace.y;
@@ -94,12 +94,13 @@ impl MSolver for Hgmres {
         let cos = &mut workspace.cos;
         let sin = &mut workspace.sin;
 
-        let mut beta;
-
+        // let mut beta;
         while *residual > tol && *iter < max_iter {
             // 1. z = b - A * x0
             // 2. z = r0
             z.calc_residual(b, A, x)?;
+
+            g.fill(0.0);
 
             for j in 0..*restart + 2 {
                 // 3. calculate householder vector u of z
@@ -108,14 +109,62 @@ impl MSolver for Hgmres {
 
                 // 4. calculate h[j-1] = P[j] * z;
                 let h = H.column_mut(j);
-                householder::transform(u, z, h);
-
-                if j == 1 {
-                    beta = h[0];
+                for i in 0..j + 1 {
+                    let sigma = -2.0 * z.dot(u)?;
+                    h[i] = z[i] + sigma * u[i];
                 }
 
-                println!();
+                if j == 0 {
+                    // beta = h[0];
+                    // g[0] = beta;
+                    g[0] = h[0]
+                }
+
+                // 5. calculate v[j] = P[0] * P[1] * ... P[j] * e[j]
+                for i in (0..j + 1).rev() {
+                    v.fill(0.0);
+                    v[i] = 1.0;
+                    householder::transform(u, v);
+                }
+
+                if j > *restart + 2 {
+                    println!("max dim");
+                    break;
+                }
+
+                // 6. j != 0일때 H[j] 에 given's rotation 적용
+                if j != 0 {
+                    for i in 0..j {
+                        let h0 = h[i];
+                        let h1 = h[i + 1];
+                        let c = cos[i];
+                        let s = sin[i];
+                        (h[i], h[i + 1]) = givens::apply_givens_rotation(h0, h1, c, s);
+                    }
+
+                    if h[j + 1].abs() < tol {
+                        log::debug!("lucky breakdown");
+                        *restart = j + 1;
+                        break;
+                    }
+                }
+
+                (cos[j], sin[j]) = givens::calc_givens_rotation(h[j], h[j + 1]);
+                (h[j], h[j + 1]) = givens::apply_givens_rotation(h[j], h[j + 1], cos[j], sin[j]);
+
+                g[j + 1] = -g[j] * sin[j];
+                g[j] *= cos[j];
+
+                // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
+                z.csr_spmv2(A, v)?;
+                for i in 0..j + 1 {
+                    let u = &U[i];
+                    householder::transform(u, z);
+                }
             }
+
+            // solve the upper triangular
+            println!();
 
             *iter += 1;
         }
@@ -197,7 +246,7 @@ impl HgmresBuilder {
 
 #[derive(Debug, Default)]
 struct Workspace {
-    // pub r: Vector,
+    pub v: Vector,
     pub g: Vec<f64>,
     pub z: Vector,
     pub y: Vec<f64>,
@@ -209,9 +258,9 @@ struct Workspace {
 
 impl Workspace {
     pub fn set_workspace(&mut self, rows: usize, restart: usize) {
-        // if self.r.len() < rows {
-        //     self.r.resize(rows, 0.0);
-        // }
+        if self.v.len() < rows {
+            self.v.resize(rows, 0.0);
+        }
 
         if self.z.len() < rows {
             self.z.resize(rows, 0.0);
@@ -229,10 +278,10 @@ impl Workspace {
             self.y.resize(restart, 0.0);
         }
 
-        let H_len = (restart + 1) * restart;
+        let H_len = (restart + 2) * restart;
         if self.H.values().len() < H_len {
             self.H = DenseMatrix::from(DenseMatrixArgs {
-                rows: restart + 1,
+                rows: restart + 2,
                 cols: restart,
                 values: vec![0.0; H_len],
             });
