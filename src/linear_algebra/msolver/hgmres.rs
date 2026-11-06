@@ -102,7 +102,7 @@ impl MSolver for Hgmres {
 
             g.fill(0.0);
 
-            for j in 0..*restart + 2 {
+            for j in 0..*restart + 1 {
                 // 3. calculate householder vector u of z
                 let u = &mut U[j];
                 householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
@@ -117,7 +117,9 @@ impl MSolver for Hgmres {
 
                 for i in 0..j + 1 {
                     let sigma = -2.0 * z.dot(u)?;
-                    h[i] = z[i] + sigma * u[i];
+                    // h 크기: restart + 1, z 크기: restart 일 때 문제 발생
+                    // h[i] = z[i] + sigma * u[i];
+                    h[i] = z.get(i).unwrap_or(&0.0) + sigma * u.get(i).unwrap_or(&0.0);
                 }
 
                 if j == 0 {
@@ -273,8 +275,8 @@ impl Workspace {
             self.z.resize(rows, 0.0);
         }
 
-        if self.U.len() < restart + 2 {
-            self.U.resize(restart + 2, Vector::new(rows));
+        if self.U.len() < restart + 1 {
+            self.U.resize(restart + 1, Vector::new(rows));
         }
 
         if self.g.len() < restart + 1 {
@@ -285,10 +287,10 @@ impl Workspace {
             self.y.resize(restart, 0.0);
         }
 
-        let H_len = (restart + 2) * (restart + 1);
+        let H_len = (restart + 1) * restart;
         if self.H.values().len() < H_len {
             self.H = DenseMatrix::from(DenseMatrixArgs {
-                rows: restart + 2,
+                rows: restart + 1,
                 cols: restart,
                 values: vec![0.0; H_len],
             });
@@ -339,7 +341,7 @@ mod tests {
         let mut hgmres = HgmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(3)
+            .with_restart(4)
             .build();
 
         hgmres.solve(&M, &pc::Idendity, &b, &mut x)?;
