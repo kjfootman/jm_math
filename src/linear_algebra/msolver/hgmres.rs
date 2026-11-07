@@ -122,23 +122,6 @@ impl MSolver for Hgmres {
                     h[i] = z.get(i).unwrap_or(&0.0) + sigma * u.get(i).unwrap_or(&0.0);
                 }
 
-                if j == 0 {
-                    g[0] = h[0]
-                }
-
-                // 5. calculate v[j] = P[0] * P[1] * ... P[j] * e[j]
-                v.fill(0.0);
-                v[j] = 1.0;
-                for i in (0..j + 1).rev() {
-                    let u = &U[i];
-                    householder::transform(u, v);
-                }
-
-                if j > *restart + 2 {
-                    println!("max dim");
-                    break;
-                }
-
                 // 6. j != 0일때 H[j] 에 given's rotation 적용
                 if j != 0 {
                     for i in 0..j - 1 {
@@ -161,6 +144,21 @@ impl MSolver for Hgmres {
 
                     g[j] = -g[j - 1] * sin[j - 1];
                     g[j - 1] *= cos[j - 1];
+                } else {
+                    g[0] = h[0]
+                }
+
+                if j > *restart + 1 {
+                    println!("max dim");
+                    break;
+                }
+
+                // 5. calculate v[j] = P[0] * P[1] * ... P[j] * e[j]
+                v.fill(0.0);
+                v[j] = 1.0;
+                for i in (0..j + 1).rev() {
+                    let u = &U[i];
+                    householder::transform(u, v);
                 }
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
@@ -169,11 +167,28 @@ impl MSolver for Hgmres {
                     let u = &U[i];
                     householder::transform(u, z);
                 }
-                println!();
             }
 
             // solve the upper triangular
-            println!();
+            triangular::solve_upper_triangular(H.values(), g, y)?;
+
+            // update solution
+            z.fill(0.0);
+            for i in (0..y.len()).rev() {
+                let u = &U[i];
+                // set unit vector
+                v.fill(0.0);
+                v[i] = 1.0;
+
+                // z = eta[j] * e[j] + z
+                z.scale_add_assign(y[i], v)?;
+
+                // z = P[j] * z
+                householder::transform(u, z);
+            }
+
+            // x = x0 + z
+            x.add_assign(z)?;
 
             *iter += 1;
         }
