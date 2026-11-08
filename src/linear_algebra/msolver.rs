@@ -6,6 +6,7 @@ mod hgmres;
 pub use cg::ConjugateGradientBuilder;
 pub use gauss_seidel::GaussSeidelBuilder;
 pub use gmres::GmresBuilder;
+pub use hgmres::HgmresBuilder;
 
 use crate::{
     error::Error,

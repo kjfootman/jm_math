@@ -8,7 +8,7 @@ use crate::{
             dense::{DenseMatrix, DenseMatrixArgs},
         },
         msolver::MSolver,
-        preconditioner as pc, simd, triangular,
+        preconditioner as pc, triangular,
         vector::Vector,
     },
 };
@@ -27,7 +27,7 @@ pub struct Hgmres {
 impl Default for Hgmres {
     fn default() -> Self {
         Self {
-            kind: "GMRES".to_string(),
+            kind: "HGMRES".to_string(),
             residual: f64::MAX,
             tolerance: 1E-7,
             max_iter: 500,
@@ -116,12 +116,18 @@ impl MSolver for Hgmres {
                     H.column_mut(j)
                 };
 
-                for i in 0..j + 1 {
-                    let sigma = -2.0 * z.dot(u)?;
-                    // h 크기: restart + 1, z 크기: restart 일 때 문제 발생
-                    // h[i] = z[i] + sigma * u[i];
-                    h[i] = z.get(i).unwrap_or(&0.0) + sigma * u.get(i).unwrap_or(&0.0);
-                }
+                let sigma = -2.0 * z.dot(u)?;
+                // for i in 0..j + 1 {
+                //     // h 크기: restart + 1, z 크기: restart 일 때 문제 발생
+                //     // h[i] = z[i] + sigma * u[i];
+                //     h[i] = z.get(i).unwrap_or(&0.0) + sigma * u.get(i).unwrap_or(&0.0);
+                // }
+                h.iter_mut()
+                    .zip(z.iter())
+                    .zip(u.iter())
+                    .for_each(|((h, z), u)| {
+                        *h = z + sigma * u;
+                    });
 
                 // 6. j != 0일때 H[j] 에 given's rotation 적용
                 if j != 0 {
@@ -163,12 +169,16 @@ impl MSolver for Hgmres {
                 }
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
-                // M.preconditioning(v, v)?;
-                z.csr_spmv2(A, v)?;
-                for i in 0..j + 1 {
-                    let u = &U[i];
-                    householder::transform(u, z);
-                }
+                M.preconditioning(v, w)?;
+                z.csr_spmv2(A, w)?;
+                // for i in 0..j + 1 {
+                //     let u = &U[i];
+                //     householder::transform(u, z);
+                // }
+
+                U.iter()
+                    .take(j + 1)
+                    .for_each(|u| householder::transform(u, z));
             }
 
             // solve the upper triangular
@@ -190,13 +200,15 @@ impl MSolver for Hgmres {
             }
 
             // x = x0 + z
-            // M.preconditioning(z, z)?;
-            x.add_assign(z)?;
+            M.preconditioning(z, w)?;
+            x.add_assign(w)?;
 
             *iter += 1;
+            *residual = g[*restart].abs() / b_mag;
         }
 
-        todo!()
+        // todo!()
+        Ok(())
     }
 }
 
@@ -274,7 +286,7 @@ impl HgmresBuilder {
 #[derive(Debug, Default)]
 struct Workspace {
     pub v: Vector,
-    pub w: Vec<f64>,
+    pub w: Vector,
     pub g: Vec<f64>,
     pub z: Vector,
     pub y: Vec<f64>,
