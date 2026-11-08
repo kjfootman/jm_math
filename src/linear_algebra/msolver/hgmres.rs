@@ -86,6 +86,7 @@ impl MSolver for Hgmres {
         workspace.set_workspace(m, *restart);
 
         let v = &mut workspace.v;
+        let w = &mut workspace.w;
         let z = &mut workspace.z;
         let g = &mut workspace.g;
         let y = &mut workspace.y;
@@ -162,6 +163,7 @@ impl MSolver for Hgmres {
                 }
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
+                // M.preconditioning(v, v)?;
                 z.csr_spmv2(A, v)?;
                 for i in 0..j + 1 {
                     let u = &U[i];
@@ -188,6 +190,7 @@ impl MSolver for Hgmres {
             }
 
             // x = x0 + z
+            // M.preconditioning(z, z)?;
             x.add_assign(z)?;
 
             *iter += 1;
@@ -271,6 +274,7 @@ impl HgmresBuilder {
 #[derive(Debug, Default)]
 struct Workspace {
     pub v: Vector,
+    pub w: Vec<f64>,
     pub g: Vec<f64>,
     pub z: Vector,
     pub y: Vec<f64>,
@@ -284,6 +288,10 @@ impl Workspace {
     pub fn set_workspace(&mut self, rows: usize, restart: usize) {
         if self.v.len() < rows {
             self.v.resize(rows, 0.0);
+        }
+
+        if self.w.len() < rows {
+            self.w.resize(rows, 0.0);
         }
 
         if self.z.len() < rows {
