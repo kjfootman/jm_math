@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXAMPLE="gmres_demo"
+EXAMPLE="hgmres_demo"
 
 BASE=$(dirname "$0")
 cd "$BASE/../.." || exit && pwd
