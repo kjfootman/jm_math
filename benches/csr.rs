@@ -126,7 +126,7 @@ fn vector_calc_residual2_bench(bencher: Bencher, path: &str) {
         });
 }
 
-#[divan::bench(sample_count = 5, sample_size = 5, args=["resources/mtx/bcsstk18.mtx"])]
+#[divan::bench(sample_count = 5, sample_size = 1, args=["resources/mtx/bcsstk18.mtx"])]
 fn conjugate_gradient(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {

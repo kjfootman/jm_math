@@ -117,17 +117,20 @@ impl MSolver for Hgmres {
                 };
 
                 let sigma = -2.0 * z.dot(u)?;
-                // for i in 0..j + 1 {
-                //     // h 크기: restart + 1, z 크기: restart 일 때 문제 발생
-                //     // h[i] = z[i] + sigma * u[i];
-                //     h[i] = z.get(i).unwrap_or(&0.0) + sigma * u.get(i).unwrap_or(&0.0);
-                // }
-                h.iter_mut()
-                    .zip(z.iter())
-                    .zip(u.iter())
-                    .for_each(|((h, z), u)| {
-                        *h = z + sigma * u;
-                    });
+
+                // TODO: 0..j + 1로 변환 필요 h[0..j + 1]까지만 non-zero
+                // h.iter_mut()
+                //     .zip(z.iter())
+                //     .zip(u.iter())
+                //     .for_each(|((h, z), u)| {
+                //         *h = z + sigma * u;
+                //     });
+                for i in 0..j + 1 {
+                    if i == z.len() {
+                        break;
+                    }
+                    h[i] = z[i] + sigma * u[i];
+                }
 
                 // 6. j != 0일때 H[j] 에 given's rotation 적용
                 if j != 0 {
@@ -207,35 +210,9 @@ impl MSolver for Hgmres {
             *residual = g[*restart].abs() / b_mag;
         }
 
-        // todo!()
         Ok(())
     }
 }
-
-// fn calc_householder_vec(v: &[f64], inplace: &mut [f64]) {
-//     debug_assert_eq!(v.len(), inplace.len());
-//
-//     let arch = simd::arch();
-//     let mut magnitude = arch.dispatch(simd::VectorDot(v, v)).sqrt();
-//
-//     if magnitude == 0.0 {
-//         return;
-//     }
-//
-//     let sign = if v[0] >= 0.0 { 1.0 } else { -1.0 };
-//
-//     inplace[0] = v[0] + sign * v[0] * magnitude;
-//     magnitude = 2.0 * magnitude * (magnitude + v[0].abs());
-//     magnitude = magnitude.sqrt();
-//
-//     arch.dispatch(simd::VectorScale(
-//         &mut inplace[1..],
-//         magnitude.recip(),
-//         &v[1..],
-//     ));
-//
-//     inplace[0] *= magnitude.recip();
-// }
 
 #[derive(Debug, Default)]
 pub struct HgmresBuilder {
