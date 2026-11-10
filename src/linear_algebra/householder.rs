@@ -28,10 +28,11 @@ pub fn calc_householder_vec(v: &[f64], inplace: &mut [f64]) {
 
 pub fn transform(u: &[f64], v: &mut [f64]) {
     let arch = simd::arch();
-    let sigma = arch.dispatch(simd::VectorDot(u, v));
+    let sigma = -2.0 * arch.dispatch(simd::VectorDot(u, v));
 
     // arch.dispatch(simd::VectorScaleAdd(inplace, v, -2.0 * sigma, u));
-    arch.dispatch(simd::VectorScaleAddAssign(v, -2.0 * sigma, u));
+    // arch.dispatch(simd::VectorScaleAddAssign(v, -2.0 * sigma, u));
+    arch.dispatch(simd::VectorScaleAddAssign(v, sigma, u));
 }
 
 #[cfg(test)]

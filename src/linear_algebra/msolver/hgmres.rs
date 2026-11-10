@@ -189,10 +189,11 @@ impl MSolver for Hgmres {
 
             // update solution
             z.fill(0.0);
+            v.fill(0.0);
             for i in (0..y.len()).rev() {
                 let u = &U[i];
                 // set unit vector
-                v.fill(0.0);
+                // v.fill(0.0);
                 v[i] = 1.0;
 
                 // z = eta[j] * e[j] + z
@@ -200,6 +201,7 @@ impl MSolver for Hgmres {
 
                 // z = P[j] * z
                 householder::transform(u, z);
+                v[i] = 0.0;
             }
 
             // x = x0 + z
