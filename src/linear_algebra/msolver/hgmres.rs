@@ -118,17 +118,7 @@ impl MSolver for Hgmres {
 
                 let sigma = -2.0 * z.dot(u)?;
 
-                // TODO: 0..j + 1로 변환 필요 h[0..j + 1]까지만 non-zero
-                // h.iter_mut()
-                //     .zip(z.iter())
-                //     .zip(u.iter())
-                //     .for_each(|((h, z), u)| {
-                //         *h = z + sigma * u;
-                //     });
-                for i in 0..j + 1 {
-                    if i == z.len() {
-                        break;
-                    }
+                for i in 0..(j + 1).min(z.len()) {
                     h[i] = z[i] + sigma * u[i];
                 }
 
@@ -168,20 +158,19 @@ impl MSolver for Hgmres {
                 v[j] = 1.0;
                 for i in (0..j + 1).rev() {
                     let u = &U[i];
-                    householder::transform(u, v);
+                    householder::transform(&u[i..m], &mut v[i..m]);
                 }
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
                 M.preconditioning(v, w)?;
                 z.csr_spmv2(A, w)?;
-                // for i in 0..j + 1 {
-                //     let u = &U[i];
-                //     householder::transform(u, z);
-                // }
 
-                U.iter()
-                    .take(j + 1)
-                    .for_each(|u| householder::transform(u, z));
+                // U.iter()
+                //     .take(j + 1)
+                //     .for_each(|u| householder::transform(u, z));
+                U.iter().take(j + 1).enumerate().for_each(|(i, u)| {
+                    householder::transform(&u[i..m], &mut z[i..m]);
+                });
             }
 
             // solve the upper triangular
@@ -200,7 +189,8 @@ impl MSolver for Hgmres {
                 z.scale_add_assign(y[i], v)?;
 
                 // z = P[j] * z
-                householder::transform(u, z);
+                // householder::transform(u, z);
+                householder::transform(&u[i..m], &mut z[i..m]);
                 v[i] = 0.0;
             }
 
