@@ -101,7 +101,7 @@ impl MSolver for Hgmres {
             // 2. z = r0
             z.calc_residual(b, A, x)?;
 
-            g.fill(0.0);
+            // g.fill(0.0);
 
             for j in 0..*restart + 1 {
                 // 3. calculate householder vector u of z
@@ -158,6 +158,7 @@ impl MSolver for Hgmres {
                 v[j] = 1.0;
                 for i in (0..j + 1).rev() {
                     let u = &U[i];
+                    // householder::transform(u, v);
                     householder::transform(&u[i..m], &mut v[i..m]);
                 }
 
@@ -246,7 +247,7 @@ impl HgmresBuilder {
             hgmres.restart = restart
         }
 
-        hgmres.kind = format!("GMRES({})", hgmres.restart);
+        hgmres.kind = format!("HGMRES({})", hgmres.restart);
 
         hgmres
     }

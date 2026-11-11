@@ -5,10 +5,12 @@ use std::time::Instant;
 fn main() -> Result<(), Error> {
     env_logger::builder().is_test(false).try_init()?;
 
-    let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
+    // let M = CSRMatrix::from_mtx("resources/mtx/bcsstk16.mtx")?;
+    let M = CSRMatrix::from_mtx("resources/mtx/bcsstk18.mtx")?;
     let b = get_source(&M);
     let mut hgmres = msolver::HgmresBuilder::new()
         .with_max_iter(500)
+        .with_restart(30)
         // .with_restart(15)
         .with_tolerance(1E-12)
         .build();
