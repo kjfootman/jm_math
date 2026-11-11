@@ -30,8 +30,6 @@ pub fn transform(u: &[f64], v: &mut [f64]) {
     let arch = simd::arch();
     let sigma = -2.0 * arch.dispatch(simd::VectorDot(u, v));
 
-    // arch.dispatch(simd::VectorScaleAdd(inplace, v, -2.0 * sigma, u));
-    // arch.dispatch(simd::VectorScaleAddAssign(v, -2.0 * sigma, u));
     arch.dispatch(simd::VectorScaleAddAssign(v, sigma, u));
 }
 

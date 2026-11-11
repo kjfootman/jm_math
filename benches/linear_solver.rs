@@ -27,7 +27,7 @@ fn get_source(M: &CSRMatrix) -> Vector {
     Vector::from(arr)
 }
 
-#[divan::bench(sample_count = 5, sample_size = 1, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
+#[divan::bench(sample_count = 5, sample_size = 2, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
 fn gmres(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
@@ -46,11 +46,17 @@ fn gmres(bencher: Bencher, path: &str) {
                 .with_restart(20)
                 .with_tolerance(1E-12)
                 .build();
+
             gmres.solve(&M, &pc, &f, &mut x).unwrap();
+            // print!(
+            //     "\niter: {}, residual: {:.4E}",
+            //     gmres.iter(),
+            //     gmres.residual()
+            // );
         });
 }
 
-#[divan::bench(sample_count = 5, sample_size = 1, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
+#[divan::bench(sample_count = 5, sample_size = 2, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
 fn hgmres(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
@@ -68,5 +74,10 @@ fn hgmres(bencher: Bencher, path: &str) {
                 .with_tolerance(1E-12)
                 .build();
             hgmres.solve(&M, &pc, &f, &mut x).unwrap();
+            // print!(
+            //     "\niter: {}, residual: {:.4E}",
+            //     hgmres.iter(),
+            //     hgmres.residual()
+            // );
         });
 }
