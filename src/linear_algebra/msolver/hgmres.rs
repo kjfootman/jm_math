@@ -148,8 +148,7 @@ impl MSolver for Hgmres {
                     g[0] = h[0]
                 }
 
-                if j > *restart + 1 {
-                    println!("max dim");
+                if j >= *restart {
                     break;
                 }
 
@@ -183,7 +182,6 @@ impl MSolver for Hgmres {
             for i in (0..y.len()).rev() {
                 let u = &U[i];
                 // set unit vector
-                // v.fill(0.0);
                 v[i] = 1.0;
 
                 // z = eta[j] * e[j] + z
@@ -347,6 +345,7 @@ mod tests {
             .with_max_iter(50)
             .with_tolerance(1E-7)
             .with_restart(4)
+            // .with_restart(3)
             .build();
 
         hgmres.solve(&M, &pc::Idendity, &b, &mut x)?;
