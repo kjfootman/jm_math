@@ -154,6 +154,24 @@ impl MSolver for Gmres {
                 g[j] *= cos[j];
             }
 
+            //---------------------------------------------------------------------------------------//
+            println!("\nGMRES---------");
+            for i in 0..V.len() {
+                let vi = &V[i];
+
+                for j in 0..i {
+                    print!("{:15}", "");
+                }
+
+                for j in i..V.len() {
+                    let vj = &V[j];
+                    let dot = vi.dot(vj)?;
+                    print!("{:<15.4E}", dot);
+                }
+                println!();
+            }
+            //---------------------------------------------------------------------------------------//
+
             // solve the upper triangular
             triangular::solve_upper_triangular(H.values(), g, y)?;
 
@@ -315,7 +333,8 @@ mod tests {
             .with_max_iter(50)
             .with_tolerance(1E-7)
             // restart 최대 4까지 가능 --> basis 벡터 4개
-            .with_restart(4)
+            // .with_restart(4)
+            .with_restart(3)
             .build();
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;

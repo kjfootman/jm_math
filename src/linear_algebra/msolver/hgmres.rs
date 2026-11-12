@@ -91,6 +91,7 @@ impl MSolver for Hgmres {
         let g = &mut workspace.g;
         let y = &mut workspace.y;
         let U = &mut workspace.U;
+        let V = &mut workspace.V;
         let H = &mut workspace.H;
         let cos = &mut workspace.cos;
         let sin = &mut workspace.sin;
@@ -148,8 +149,9 @@ impl MSolver for Hgmres {
                     g[0] = h[0]
                 }
 
-                if j > *restart + 1 {
-                    println!("max dim");
+                // if j > *restart + 1 {
+                if j >= *restart {
+                    println!("max dim: {}", iter);
                     break;
                 }
 
@@ -162,6 +164,10 @@ impl MSolver for Hgmres {
                     householder::transform(&u[i..m], &mut v[i..m]);
                 }
 
+                //---------------------------------------------------------------------------------------//
+                V[j].copy_from_slice(v);
+                //---------------------------------------------------------------------------------------//
+
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
                 M.preconditioning(v, w)?;
                 z.csr_spmv2(A, w)?;
@@ -173,6 +179,24 @@ impl MSolver for Hgmres {
                     householder::transform(&u[i..m], &mut z[i..m]);
                 });
             }
+
+            //---------------------------------------------------------------------------------------//
+            println!("HGMRES---------");
+            for i in 0..V.len() {
+                let vi = &V[i];
+
+                for j in 0..i {
+                    print!("{:15}", "");
+                }
+
+                for j in i..V.len() {
+                    let vj = &V[j];
+                    let dot = vi.dot(vj)?;
+                    print!("{:<15.4E}", dot);
+                }
+                println!();
+            }
+            //---------------------------------------------------------------------------------------//
 
             // solve the upper triangular
             triangular::solve_upper_triangular(H.values(), g, y)?;
@@ -261,6 +285,7 @@ struct Workspace {
     pub z: Vector,
     pub y: Vec<f64>,
     pub U: Vec<Vector>,
+    pub V: Vec<Vector>,
     pub H: DenseMatrix,
     pub cos: Vec<f64>,
     pub sin: Vec<f64>,
@@ -282,6 +307,10 @@ impl Workspace {
 
         if self.U.len() < restart + 1 {
             self.U.resize(restart + 1, Vector::new(rows));
+        }
+
+        if self.V.len() < restart + 1 {
+            self.V.resize(restart, Vector::new(rows));
         }
 
         if self.g.len() < restart + 1 {
@@ -346,7 +375,8 @@ mod tests {
         let mut hgmres = HgmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(4)
+            // .with_restart(4)
+            .with_restart(3)
             .build();
 
         hgmres.solve(&M, &pc::Idendity, &b, &mut x)?;
