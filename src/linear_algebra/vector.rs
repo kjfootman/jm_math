@@ -153,7 +153,7 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg.into()));
         }
 
-        dot(self, vec)
+        Ok(dot(self, vec))
 
         //         let arch = simd::arch();
         //         let result = arch.dispatch(simd::VectorDot(self, vec));
@@ -360,11 +360,9 @@ impl Vector {
     }
 }
 
-pub fn dot(u: &[f64], v: &[f64]) -> Result<f64, Error> {
+pub fn dot(u: &[f64], v: &[f64]) -> f64 {
     let arch = simd::arch();
-    let result = arch.dispatch(simd::VectorDot(u, v));
-
-    Ok(result)
+    arch.dispatch(simd::VectorDot(u, v))
 }
 
 // impl Mul<Vector> for f64 {
