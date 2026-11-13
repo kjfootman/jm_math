@@ -153,10 +153,12 @@ impl Vector {
             return Err(Error::DimensionMismatch(msg.into()));
         }
 
-        let arch = simd::arch();
-        let result = arch.dispatch(simd::VectorDot(self, vec));
+        Ok(dot(self, vec))
 
-        Ok(result)
+        //         let arch = simd::arch();
+        //         let result = arch.dispatch(simd::VectorDot(self, vec));
+        //
+        //         Ok(result)
     }
 
     pub fn csr_spmv(&mut self, matrix: &CSRMatrix, vec: &Vector) -> Result<(), Error> {
@@ -356,6 +358,11 @@ impl Vector {
 
         Ok(vector)
     }
+}
+
+pub fn dot(u: &[f64], v: &[f64]) -> f64 {
+    let arch = simd::arch();
+    arch.dispatch(simd::VectorDot(u, v))
 }
 
 // impl Mul<Vector> for f64 {
