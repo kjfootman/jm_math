@@ -92,6 +92,7 @@ impl MSolver for Hgmres {
         let y = &mut workspace.y;
         let U = &mut workspace.U;
         let H = &mut workspace.H;
+        let L = &mut workspace.L;
         let cos = &mut workspace.cos;
         let sin = &mut workspace.sin;
 
@@ -161,7 +162,7 @@ impl MSolver for Hgmres {
                     householder::transform(&u[i..m], &mut v[i..m]);
                 }
 
-                // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * v[j]
+                // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * M^-1 * v[j]
                 M.preconditioning(v, w)?;
                 z.csr_spmv2(A, w)?;
 
@@ -193,7 +194,7 @@ impl MSolver for Hgmres {
                 v[i] = 0.0;
             }
 
-            // x = x0 + z
+            // x = x0 + M^-1 * z
             M.preconditioning(z, w)?;
             x.add_assign(w)?;
 
@@ -260,6 +261,7 @@ struct Workspace {
     pub y: Vec<f64>,
     pub U: Vec<Vector>,
     pub H: DenseMatrix,
+    pub L: DenseMatrix,
     pub cos: Vec<f64>,
     pub sin: Vec<f64>,
 }
@@ -296,6 +298,15 @@ impl Workspace {
                 rows: restart + 1,
                 cols: restart,
                 values: vec![0.0; H_len],
+            });
+        }
+
+        let L_len = restart * restart;
+        if self.L.values().len() < L_len {
+            self.L = DenseMatrix::from(DenseMatrixArgs {
+                rows: restart,
+                cols: restart,
+                values: vec![0.0; L_len],
             });
         }
 
