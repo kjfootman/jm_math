@@ -9,7 +9,7 @@ use crate::{
         },
         msolver::MSolver,
         preconditioner as pc, triangular,
-        vector::Vector,
+        vector::{self, Vector},
     },
 };
 
@@ -106,8 +106,19 @@ impl MSolver for Hgmres {
 
             for j in 0..*restart + 1 {
                 // 3. calculate householder vector u of z
-                let u = &mut U[j];
-                householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
+                // let u = &mut U[j];
+                // householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
+                householder::calc_householder_vec(&z[j..m], &mut U[j][j..m]);
+
+                // Lower matrix for variation method
+                let l = L.column_mut(j);
+                l[j] = 1.0;
+
+                for i in 0..j {
+                    let ui = &U[i];
+                    let uj = &U[j];
+                    l[i] = 2.0 * vector::dot(&ui[j..m], &uj[j..m]);
+                }
 
                 // 4. calculate h[j-1] = P[j] * z;
                 let h = if j != 0 {
@@ -117,6 +128,7 @@ impl MSolver for Hgmres {
                     H.column_mut(j)
                 };
 
+                let u = &U[j];
                 let sigma = -2.0 * z.dot(u)?;
 
                 for i in 0..(j + 1).min(z.len()) {
