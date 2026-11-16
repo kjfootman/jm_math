@@ -89,6 +89,8 @@ impl MSolver for Hgmres {
         let w = &mut workspace.w;
         let z = &mut workspace.z;
         let g = &mut workspace.g;
+        let c = &mut workspace.c;
+        let d = &mut workspace.d;
         let y = &mut workspace.y;
         let U = &mut workspace.U;
         let H = &mut workspace.H;
@@ -111,6 +113,8 @@ impl MSolver for Hgmres {
                 householder::calc_householder_vec(&z[j..m], &mut U[j][j..m]);
 
                 // Lower matrix for variation method
+                //-----------------------------------------------------------------------------//
+                // FIX: j != 0 일 경우만 적용
                 let l = L.column_mut(j);
                 l[j] = 1.0;
 
@@ -119,6 +123,7 @@ impl MSolver for Hgmres {
                     let uj = &U[j];
                     l[i] = 2.0 * vector::dot(&ui[j..m], &uj[j..m]);
                 }
+                //-----------------------------------------------------------------------------//
 
                 // 4. calculate h[j-1] = P[j] * z;
                 let h = if j != 0 {
@@ -174,6 +179,14 @@ impl MSolver for Hgmres {
                     householder::transform(&u[i..m], &mut v[i..m]);
                 }
 
+                // U^T * v
+                for i in 0..m {
+                    let u = &U[i];
+                    c[i] = -2.0 * vector::dot(&u[i..m], &v[i..m]);
+                }
+
+                triangular::solve_lower_triangular(L.values(), c, d)?;
+
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * M^-1 * v[j]
                 M.preconditioning(v, w)?;
                 z.csr_spmv2(A, w)?;
@@ -212,6 +225,7 @@ impl MSolver for Hgmres {
 
             *iter += 1;
             *residual = g[*restart].abs() / b_mag;
+            log::debug!("iter: {}, residual: {:10.4E}", iter, residual);
         }
 
         Ok(())
@@ -269,6 +283,8 @@ struct Workspace {
     pub v: Vector,
     pub w: Vector,
     pub g: Vec<f64>,
+    pub c: Vec<f64>,
+    pub d: Vec<f64>,
     pub z: Vector,
     pub y: Vec<f64>,
     pub U: Vec<Vector>,
@@ -298,6 +314,14 @@ impl Workspace {
 
         if self.g.len() < restart + 1 {
             self.g.resize(restart + 1, 0.0);
+        }
+
+        if self.c.len() < restart {
+            self.c.resize(restart, 0.0);
+        }
+
+        if self.d.len() < restart {
+            self.d.resize(restart, 0.0);
         }
 
         if self.y.len() < restart {
