@@ -112,19 +112,6 @@ impl MSolver for Hgmres {
                 // householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
                 householder::calc_householder_vec(&z[j..m], &mut U[j][j..m]);
 
-                // Lower matrix for variation method
-                //-----------------------------------------------------------------------------//
-                // FIX: j != 0 일 경우만 적용
-                let l = L.column_mut(j);
-                l[j] = 1.0;
-
-                for i in 0..j {
-                    let ui = &U[i];
-                    let uj = &U[j];
-                    l[i] = 2.0 * vector::dot(&ui[j..m], &uj[j..m]);
-                }
-                //-----------------------------------------------------------------------------//
-
                 // 4. calculate h[j-1] = P[j] * z;
                 let h = if j != 0 {
                     // j > 0 조건일 경우만 H[j-1]에 저장
@@ -170,22 +157,49 @@ impl MSolver for Hgmres {
                     break;
                 }
 
+                // Lower matrix for variation method
+                //-----------------------------------------------------------------------------//
+                // FIX: j != 0 일 경우만 적용
+                let l = L.column_mut(j);
+                l[j] = 1.0;
+
+                for i in 0..j {
+                    let ui = &U[i];
+                    let uj = &U[j];
+                    l[i] = 2.0 * vector::dot(&ui[j..m], &uj[j..m]);
+                }
+                //-----------------------------------------------------------------------------//
+
                 // 5. calculate v[j] = P[0] * P[1] * ... P[j] * e[j]
                 v.fill(0.0);
                 v[j] = 1.0;
-                for i in (0..j + 1).rev() {
-                    let u = &U[i];
-                    // householder::transform(u, v);
-                    householder::transform(&u[i..m], &mut v[i..m]);
-                }
+                // for i in (0..j + 1).rev() {
+                //     let u = &U[i];
+                //     // householder::transform(u, v);
+                //     householder::transform(&u[i..m], &mut v[i..m]);
+                // }
 
                 // U^T * v
-                for i in 0..m {
+                for i in 0..j + 1 {
                     let u = &U[i];
                     c[i] = -2.0 * vector::dot(&u[i..m], &v[i..m]);
                 }
 
-                triangular::solve_lower_triangular(L.values(), c, d)?;
+                // FIX: L일 때와 L^T일 때 triangular::solver_lower_triangular 솔버 구분 필요
+                // L: row major 메모리 구조
+                // - L^T 일 때 역방향 메인루프 (0..m).rev()
+                // - L 일 때 정방향 메인루프 (0..m)
+                //
+                triangular::solve_lower_triangular(
+                    &L.values()[0..m * (j + 1)],
+                    m,
+                    &c[0..j + 1],
+                    &mut d[0..j + 1],
+                )?;
+
+                for i in 0..j + 1 {
+                    v.scale_add_assign(d[i], &U[i])?;
+                }
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * M^-1 * v[j]
                 M.preconditioning(v, w)?;

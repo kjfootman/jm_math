@@ -2,6 +2,7 @@ use crate::error::Error;
 
 pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> Result<(), Error> {
     let mut m = source.len();
+    // Leading Dimension Array of A
     let lda = m;
 
     if x.len() != source.len() {
@@ -33,11 +34,16 @@ pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> 
     Ok(())
 }
 
-pub fn solve_lower_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> Result<(), Error> {
+pub fn solve_lower_triangular(
+    matrix: &[f64],
+    lda: usize,
+    source: &[f64],
+    x: &mut [f64],
+) -> Result<(), Error> {
     let m = source.len();
 
     for i in 0..m {
-        let row = &matrix[i * m..(i + 1) * m];
+        let row = &matrix[i * lda..(i + 1) * lda];
         let mut sum = source[i];
 
         for j in 0..i {
@@ -103,7 +109,7 @@ mod tests {
             )));
         }
 
-        solve_lower_triangular(&M, &b, &mut x)?;
+        solve_lower_triangular(&M, m, &b, &mut x)?;
 
         assert_eq!(x, vec![1.0; m]);
 
