@@ -1,6 +1,9 @@
 use crate::{
     error::Error,
-    linear_algebra::matrix::dense::{DenseMatrix, Layout},
+    linear_algebra::matrix::{
+        Matrix,
+        dense::{DenseMatrix, Layout},
+    },
 };
 
 pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> Result<(), Error> {
@@ -38,9 +41,13 @@ pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> 
 }
 
 pub fn solve_upper(matrix: &DenseMatrix, source: &[f64], x: &mut [f64]) -> Result<(), Error> {
+    let lda = matrix.rows();
+
     match matrix.layout() {
         Layout::RowMajor => {}
-        Layout::ColMajor => {}
+        Layout::ColMajor => {
+            solve_upper_col_major(matrix.values(), lda, source, x);
+        }
     }
     todo!()
 }
@@ -58,7 +65,17 @@ fn solve_upper_row_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f6
 }
 
 fn solve_upper_col_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f64]) {
-    todo!()
+    let m = x.len();
+
+    for i in (0..m).rev() {
+        let mut sum = source[i];
+        let diag = matrix[i + lda * i];
+        for j in i + 1..m {
+            sum -= matrix[i + lda * j] * x[j];
+        }
+
+        x[i] = sum / diag;
+    }
 }
 
 pub fn solve_lower_triangular(
@@ -109,6 +126,7 @@ mod tests {
         }
 
         solve_upper_triangular(&M, &b, &mut x)?;
+        solve_upper_col_major(&M, m, &b, &mut x);
 
         assert_eq!(x, vec![1.0; m]);
 
