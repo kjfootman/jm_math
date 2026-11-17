@@ -5,7 +5,7 @@ use crate::{
         matrix::{
             Matrix,
             csr::CSRMatrix,
-            dense::{DenseMatrix, DenseMatrixArgs},
+            dense::{DenseMatrix, DenseMatrixArgs, Layout},
         },
         msolver::MSolver,
         preconditioner as pc, triangular,
@@ -187,8 +187,8 @@ impl MSolver for Hgmres {
 
                 // FIX: L일 때와 L^T일 때 triangular::solver_lower_triangular 솔버 구분 필요
                 // L: row major 메모리 구조
-                // - L^T 일 때 역방향 메인루프 (0..m).rev()
-                // - L 일 때 정방향 메인루프 (0..m)
+                // - L^T 일 때 역방향 메인루프 (0..m).rev() -> 메모리 연속성 X
+                // - L 일 때 정방향 메인루프 (0..m) -> 메모리 연속성 O
                 //
                 triangular::solve_lower_triangular(
                     &L.values()[0..m * (j + 1)],
@@ -347,6 +347,7 @@ impl Workspace {
             self.H = DenseMatrix::from(DenseMatrixArgs {
                 rows: restart + 1,
                 cols: restart,
+                layout: Layout::ColMajor,
                 values: vec![0.0; H_len],
             });
         }
@@ -356,6 +357,7 @@ impl Workspace {
             self.L = DenseMatrix::from(DenseMatrixArgs {
                 rows: restart,
                 cols: restart,
+                layout: Layout::RowMajor,
                 values: vec![0.0; L_len],
             });
         }

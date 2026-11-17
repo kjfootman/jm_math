@@ -4,7 +4,15 @@ use super::Matrix;
 pub struct DenseMatrix {
     rows: usize,
     cols: usize,
+    layout: Layout,
     values: Vec<f64>,
+}
+
+#[derive(Debug, Default)]
+pub enum Layout {
+    #[default]
+    RowMajor,
+    ColMajor,
 }
 
 impl DenseMatrix {
@@ -21,6 +29,10 @@ impl DenseMatrix {
     pub fn values(&self) -> &[f64] {
         &self.values
     }
+
+    pub fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 impl From<DenseMatrixArgs> for DenseMatrix {
@@ -28,10 +40,22 @@ impl From<DenseMatrixArgs> for DenseMatrix {
         Self {
             rows: args.rows,
             cols: args.cols,
+            layout: args.layout,
             values: args.values,
         }
     }
 }
+
+// impl Default for DenseMatrix {
+//     fn default() -> Self {
+//         Self {
+//             rows: 0,
+//             cols: 0,
+//             layout: Layout::ColMajor,
+//             values: vec![],
+//         }
+//     }
+// }
 
 impl Matrix for DenseMatrix {
     fn cols(&self) -> usize {
@@ -47,6 +71,7 @@ impl Matrix for DenseMatrix {
 pub struct DenseMatrixArgs {
     pub rows: usize,
     pub cols: usize,
+    pub layout: Layout,
     pub values: Vec<f64>,
 }
 
@@ -60,6 +85,7 @@ mod tests {
         let args = DenseMatrixArgs {
             rows: 5,
             cols: 4,
+            layout: Layout::ColMajor,
             values: vec![
                 1.0, 5.0, 0.0, 0.0, 0.0, 2.0, 6.0, 9.0, 0.0, 0.0, 3.0, 7.0, 10.0, 12.0, 0.0, 4.0,
                 8.0, 11.0, 13.0, 14.0,

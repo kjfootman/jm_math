@@ -1,4 +1,7 @@
-use crate::error::Error;
+use crate::{
+    error::Error,
+    linear_algebra::matrix::dense::{DenseMatrix, Layout},
+};
 
 pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> Result<(), Error> {
     let mut m = source.len();
@@ -32,6 +35,30 @@ pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> 
     }
 
     Ok(())
+}
+
+pub fn solve_upper(matrix: &DenseMatrix, source: &[f64], x: &mut [f64]) -> Result<(), Error> {
+    match matrix.layout() {
+        Layout::RowMajor => {}
+        Layout::ColMajor => {}
+    }
+    todo!()
+}
+
+pub fn solve_lower(matrix: &DenseMatrix, source: &[f64], x: &mut [f64]) -> Result<(), Error> {
+    match matrix.layout() {
+        Layout::RowMajor => {}
+        Layout::ColMajor => {}
+    }
+    todo!()
+}
+
+fn solve_upper_row_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f64]) {
+    todo!()
+}
+
+fn solve_upper_col_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f64]) {
+    todo!()
 }
 
 pub fn solve_lower_triangular(

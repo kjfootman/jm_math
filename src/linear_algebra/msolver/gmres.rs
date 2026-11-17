@@ -5,7 +5,7 @@ use crate::{
         matrix::{
             Matrix,
             csr::CSRMatrix,
-            dense::{DenseMatrix, DenseMatrixArgs},
+            dense::{DenseMatrix, DenseMatrixArgs, Layout},
         },
         msolver::MSolver,
         preconditioner as pc, triangular,
@@ -265,6 +265,7 @@ impl Workspace {
             self.H = DenseMatrix::from(DenseMatrixArgs {
                 rows: restart + 1,
                 cols: restart,
+                layout: Layout::ColMajor,
                 values: vec![0.0; H_len],
             });
         }
