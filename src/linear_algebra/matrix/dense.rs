@@ -25,8 +25,6 @@ pub struct DenseMatrixView<'a> {
 }
 
 pub trait DenseMatrixRef: Matrix {
-    // fn column(&self, idx: usize) -> &[f64];
-    // fn column_mut(&mut self, idx: usize) -> &mut [f64];
     fn layout(&self) -> &Layout;
     fn values(&self) -> &[f64];
 }
@@ -37,7 +35,7 @@ impl DenseMatrix {
 
         if self.layout != Layout::ColMajor {
             return Err(Error::ValueError(
-                "Can not get a column of the row-major DenseMatrix.".into(),
+                "Column extraction is not supported for a row-major Densematrix".into(),
             ));
         }
 
@@ -49,12 +47,37 @@ impl DenseMatrix {
 
         if self.layout != Layout::ColMajor {
             return Err(Error::ValueError(
-                "Can not get a column of the row-major DenseMatrix.".into(),
+                "Column extraction is not supported for a row-major Densematrix".into(),
             ));
         }
 
         Ok(&mut self.values[idx * m..(idx + 1) * m])
     }
+
+    pub fn row(&self, idx: usize) -> Result<&[f64], Error> {
+        let n = self.cols;
+
+        if self.layout != Layout::RowMajor {
+            return Err(Error::ValueError(
+                "Row extraction is not supported for a col-major Densematrix".into(),
+            ));
+        }
+
+        Ok(&self.values[idx * n..(idx + 1) * n])
+    }
+
+    pub fn row_mut(&mut self, idx: usize) -> Result<&mut [f64], Error> {
+        let n = self.cols;
+
+        if self.layout != Layout::RowMajor {
+            return Err(Error::ValueError(
+                "Row extraction is not supported for a col-major Densematrix".into(),
+            ));
+        }
+
+        Ok(&mut self.values[idx * n..(idx + 1) * n])
+    }
+
     pub fn transpose(&self) -> DenseMatrixView<'_> {
         DenseMatrixView {
             rows: self.cols,
@@ -67,26 +90,6 @@ impl DenseMatrix {
         }
     }
 }
-
-// impl DenseMatrix {
-//     pub fn column(&self, idx: usize) -> &[f64] {
-//         let m = self.rows;
-//         &self.values[idx * m..(idx + 1) * m]
-//     }
-
-//     pub fn column_mut(&mut self, idx: usize) -> &mut [f64] {
-//         let m = self.rows;
-//         &mut self.values[idx * m..(idx + 1) * m]
-//     }
-
-//     pub fn values(&self) -> &[f64] {
-//         &self.values
-//     }
-
-//     pub fn layout(&self) -> &Layout {
-//         &self.layout
-//     }
-// }
 
 impl DenseMatrixRef for DenseMatrix {
     #[inline]
@@ -111,17 +114,6 @@ impl From<DenseMatrixArgs> for DenseMatrix {
     }
 }
 
-// impl Default for DenseMatrix {
-//     fn default() -> Self {
-//         Self {
-//             rows: 0,
-//             cols: 0,
-//             layout: Layout::ColMajor,
-//             values: vec![],
-//         }
-//     }
-// }
-
 impl Matrix for DenseMatrix {
     #[inline]
     fn cols(&self) -> usize {
@@ -129,6 +121,26 @@ impl Matrix for DenseMatrix {
     }
 
     #[inline]
+    fn rows(&self) -> usize {
+        self.rows
+    }
+}
+
+impl DenseMatrixRef for DenseMatrixView<'_> {
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
+
+    fn values(&self) -> &[f64] {
+        self.values
+    }
+}
+
+impl Matrix for DenseMatrixView<'_> {
+    fn cols(&self) -> usize {
+        self.cols
+    }
+
     fn rows(&self) -> usize {
         self.rows
     }
@@ -169,6 +181,48 @@ mod tests {
         assert_eq!(A.column(1)?, &[2.0, 6.0, 9.0, 0.0, 0.0]);
         assert_eq!(A.column(2)?, &[3.0, 7.0, 10.0, 12.0, 0.0]);
         assert_eq!(A.column(3)?, &[4.0, 8.0, 11.0, 13.0, 14.0]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_row() -> Result<(), Error> {
+        let (rows, cols) = (3, 3);
+        let A = DenseMatrix::from(DenseMatrixArgs {
+            rows,
+            cols,
+            layout: Layout::RowMajor,
+            #[rustfmt::skip]
+            values: vec![
+                1.0, 2.0, 3.0,
+                4.0, 5.0, 6.0,
+                7.0, 8.0, 9.0
+            ],
+        });
+
+        let row = A.row(0)?;
+        assert_eq!(row, vec![1.0, 2.0, 3.0]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_column() -> Result<(), Error> {
+        let (rows, cols) = (3, 3);
+        let A = DenseMatrix::from(DenseMatrixArgs {
+            rows,
+            cols,
+            layout: Layout::ColMajor,
+            #[rustfmt::skip]
+            values: vec![
+                1.0, 2.0, 3.0,
+                4.0, 5.0, 6.0,
+                7.0, 8.0, 9.0
+            ],
+        });
+
+        let col = A.column(0)?;
+        assert_eq!(col, vec![1.0, 2.0, 3.0]);
 
         Ok(())
     }

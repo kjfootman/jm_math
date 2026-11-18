@@ -160,7 +160,8 @@ impl MSolver for Hgmres {
                 // Lower matrix for variation method
                 //-----------------------------------------------------------------------------//
                 // FIX: j != 0 일 경우만 적용
-                let l = L.column_mut(j)?;
+                // let l = L.column_mut(j)?;
+                let l = L.row_mut(j)?;
                 l[j] = 1.0;
 
                 for i in 0..j {
@@ -179,7 +180,7 @@ impl MSolver for Hgmres {
                 //     householder::transform(&u[i..m], &mut v[i..m]);
                 // }
 
-                // U^T * v
+                // -2.0 * U ^ T * v
                 for i in 0..j + 1 {
                     let u = &U[i];
                     c[i] = -2.0 * vector::dot(&u[i..m], &v[i..m]);
@@ -190,12 +191,13 @@ impl MSolver for Hgmres {
                 // - L^T 일 때 역방향 메인루프 (0..m).rev() -> 메모리 연속성 X
                 // - L 일 때 정방향 메인루프 (0..m) -> 메모리 연속성 O
                 //
-                triangular::solve_lower_triangular(
-                    &L.values()[0..m * (j + 1)],
-                    m,
-                    &c[0..j + 1],
-                    &mut d[0..j + 1],
-                )?;
+                // triangular::solve_lower_triangular(
+                //     &L.values()[0..m * (j + 1)],
+                //     m,
+                //     &c[0..j + 1],
+                //     &mut d[0..j + 1],
+                // )?;
+                triangular::solve_upper(&L.transpose(), c, &mut d[0..j + 1])?;
 
                 for i in 0..j + 1 {
                     v.scale_add_assign(d[i], &U[i])?;
@@ -205,12 +207,24 @@ impl MSolver for Hgmres {
                 M.preconditioning(v, w)?;
                 z.csr_spmv2(A, w)?;
 
+                // -2.0 * U ^ T * v
+                for i in 0..j + 1 {
+                    let u = &U[i];
+                    c[i] = -2.0 * vector::dot(&u[i..m], &z[i..m]);
+                }
+
                 // U.iter()
                 //     .take(j + 1)
                 //     .for_each(|u| householder::transform(u, z));
-                U.iter().take(j + 1).enumerate().for_each(|(i, u)| {
-                    householder::transform(&u[i..m], &mut z[i..m]);
-                });
+                // U.iter().take(j + 1).enumerate().for_each(|(i, u)| {
+                //     householder::transform(&u[i..m], &mut z[i..m]);
+                // });
+
+                triangular::solve_lower(L, c, &mut d[0..j + 1])?;
+
+                for i in 0..j + 1 {
+                    z.scale_add_assign(d[i], &U[i])?;
+                }
             }
 
             // solve the upper triangular
@@ -229,6 +243,7 @@ impl MSolver for Hgmres {
 
                 // z = P[j] * z
                 // householder::transform(u, z);
+                // TODO: variation method 적용
                 householder::transform(&u[i..m], &mut z[i..m]);
                 v[i] = 0.0;
             }

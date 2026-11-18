@@ -37,8 +37,8 @@ pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> 
     Ok(())
 }
 
-pub fn solve_upper<D: DenseMatrixRef>(
-    matrix: &D,
+pub fn solve_upper<T: DenseMatrixRef>(
+    matrix: &T,
     source: &[f64],
     x: &mut [f64],
 ) -> Result<(), Error> {
@@ -57,8 +57,8 @@ pub fn solve_upper<D: DenseMatrixRef>(
     Ok(())
 }
 
-pub fn solve_lower<D: DenseMatrixRef>(
-    matrix: &D,
+pub fn solve_lower<T: DenseMatrixRef>(
+    matrix: &T,
     source: &[f64],
     x: &mut [f64],
 ) -> Result<(), Error> {
@@ -97,6 +97,7 @@ fn solve_upper_col_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f6
     for i in (0..m).rev() {
         let mut sum = source[i];
         let diag = matrix[i + lda * i];
+
         for j in i + 1..m {
             sum -= matrix[i + lda * j] * x[j];
         }
@@ -177,26 +178,57 @@ mod tests {
         // 0  0  6   9 | 1 | 15
         // 0  0  0  10 | 1 | 10
         // 0  0  0   0 |   |  0
-
         let (rows, cols) = (5, 4);
         let M = DenseMatrix::from(DenseMatrixArgs {
             rows,
             cols,
             layout: Layout::RowMajor,
             #[rustfmt::skip]
-            // row-major DenseMatrix
-            values: vec![
-                1.0, 2.0, 4.0,  7.0,
-                0.0, 3.0, 5.0,  8.0,
-                0.0, 0.0, 6.0,  9.0,
-                0.0, 0.0, 0.0, 10.0,
-                0.0, 0.0, 0.0,  0.0,
-            ],
+                    // row-major DenseMatrix
+                    values: vec![
+                        1.0, 2.0, 4.0,  7.0,
+                        0.0, 3.0, 5.0,  8.0,
+                        0.0, 0.0, 6.0,  9.0,
+                        0.0, 0.0, 0.0, 10.0,
+                        0.0, 0.0, 0.0,  0.0,
+                    ],
         });
         let b = vec![14.0, 16.0, 15.0, 10.0, 0.0];
         let mut x = vec![0.0; cols];
 
         solve_upper(&M, &b, &mut x)?;
+
+        assert_eq!(x, vec![1.0; cols]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn solve_upper_transpose_row_major() -> Result<(), Error> {
+        // [ 1  0  0   0 ] ^ T | 1 | 14
+        // [ 2  3  0   0 ]     | 1 | 16
+        // [ 4  5  6   0 ]     | 1 | 15
+        // [ 7  8  9  10 ]     | 1 | 10
+
+        let (rows, cols) = (4, 4);
+        let M = DenseMatrix::from(DenseMatrixArgs {
+            rows,
+            cols,
+            layout: Layout::RowMajor,
+            #[rustfmt::skip]
+                // row-major DenseMatrix
+                values: vec![
+                    1.0, 0.0, 0.0,  0.0,
+                    2.0, 3.0, 0.0,  0.0,
+                    4.0, 5.0, 6.0,  0.0,
+                    7.0, 8.0, 9.0, 10.0,
+                ],
+        });
+        let b = vec![14.0, 16.0, 15.0, 10.0];
+        let mut x = vec![0.0; cols];
+
+        let transpose = M.transpose();
+        solve_upper(&transpose, &b, &mut x)?;
 
         assert_eq!(x, vec![1.0; cols]);
 
@@ -242,7 +274,6 @@ mod tests {
         // 4  5  6   0 | 1 | 15
         // 7  8  9  10 | 1 | 34
         // 0  0  0   0 |   |  0
-
         let (rows, cols) = (5, 4);
         let M = DenseMatrix::from(DenseMatrixArgs {
             rows,
@@ -264,6 +295,26 @@ mod tests {
         solve_lower(&M, &b, &mut x)?;
 
         assert_eq!(x, vec![1.0; cols]);
+
+        //--------------------------------------------------------------------------------//
+        let (rows, cols) = (4, 4);
+        let M = DenseMatrix::from(DenseMatrixArgs {
+            rows,
+            cols,
+            layout: Layout::RowMajor,
+            #[rustfmt::skip]
+            values: vec![
+                1.0, 0.0, 0.0, 0.0,
+                2.0, 3.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0
+            ],
+        });
+        let b = vec![1.0, 5.0, 0.0, 0.0];
+        let mut x = vec![0.0; rows];
+
+        solve_lower(&M, &b, &mut x[0..2])?;
+        assert_eq!(x, vec![1.0, 1.0, 0.0, 0.0]);
 
         Ok(())
     }
