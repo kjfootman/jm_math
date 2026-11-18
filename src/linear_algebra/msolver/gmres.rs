@@ -5,7 +5,7 @@ use crate::{
         matrix::{
             Matrix,
             csr::CSRMatrix,
-            dense::{DenseMatrix, DenseMatrixArgs, Layout},
+            dense::{DenseMatrix, DenseMatrixArgs, DenseMatrixRef, Layout},
         },
         msolver::MSolver,
         preconditioner as pc, triangular,
@@ -119,7 +119,7 @@ impl MSolver for Gmres {
                 w.csr_spmv2(A, r)?;
 
                 // 5. Arnoldi process
-                let h = H.column_mut(j);
+                let h = H.column_mut(j)?;
                 for i in 0..j + 1 {
                     let v = &V[i];
                     h[i] = w.dot(v)?;

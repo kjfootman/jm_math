@@ -1,9 +1,6 @@
 use crate::{
     error::Error,
-    linear_algebra::matrix::{
-        Matrix,
-        dense::{DenseMatrix, Layout},
-    },
+    linear_algebra::matrix::dense::{DenseMatrixRef, Layout},
 };
 
 pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> Result<(), Error> {
@@ -40,7 +37,11 @@ pub fn solve_upper_triangular(matrix: &[f64], source: &[f64], x: &mut [f64]) -> 
     Ok(())
 }
 
-pub fn solve_upper(matrix: &DenseMatrix, source: &[f64], x: &mut [f64]) -> Result<(), Error> {
+pub fn solve_upper<D: DenseMatrixRef>(
+    matrix: &D,
+    source: &[f64],
+    x: &mut [f64],
+) -> Result<(), Error> {
     // Leading Dimension Array of A
     match matrix.layout() {
         Layout::RowMajor => {
@@ -56,7 +57,11 @@ pub fn solve_upper(matrix: &DenseMatrix, source: &[f64], x: &mut [f64]) -> Resul
     Ok(())
 }
 
-pub fn solve_lower(matrix: &DenseMatrix, source: &[f64], x: &mut [f64]) -> Result<(), Error> {
+pub fn solve_lower<D: DenseMatrixRef>(
+    matrix: &D,
+    source: &[f64],
+    x: &mut [f64],
+) -> Result<(), Error> {
     match matrix.layout() {
         Layout::RowMajor => {
             let lda = matrix.cols();
@@ -157,7 +162,7 @@ pub fn solve_lower_triangular(
 mod tests {
     use super::*;
     use crate::linear_algebra::{
-        matrix::dense::{DenseMatrixArgs, Layout},
+        matrix::dense::{DenseMatrix, DenseMatrixArgs, Layout},
         triangular::solve_upper,
     };
 

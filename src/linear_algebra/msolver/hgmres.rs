@@ -5,7 +5,7 @@ use crate::{
         matrix::{
             Matrix,
             csr::CSRMatrix,
-            dense::{DenseMatrix, DenseMatrixArgs, Layout},
+            dense::{DenseMatrix, DenseMatrixArgs, DenseMatrixRef, Layout},
         },
         msolver::MSolver,
         preconditioner as pc, triangular,
@@ -115,9 +115,9 @@ impl MSolver for Hgmres {
                 // 4. calculate h[j-1] = P[j] * z;
                 let h = if j != 0 {
                     // j > 0 조건일 경우만 H[j-1]에 저장
-                    H.column_mut(j - 1)
+                    H.column_mut(j - 1)?
                 } else {
-                    H.column_mut(j)
+                    H.column_mut(j)?
                 };
 
                 let u = &U[j];
@@ -160,7 +160,7 @@ impl MSolver for Hgmres {
                 // Lower matrix for variation method
                 //-----------------------------------------------------------------------------//
                 // FIX: j != 0 일 경우만 적용
-                let l = L.column_mut(j);
+                let l = L.column_mut(j)?;
                 l[j] = 1.0;
 
                 for i in 0..j {

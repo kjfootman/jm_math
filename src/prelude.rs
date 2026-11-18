@@ -4,7 +4,7 @@ pub use crate::{
         matrix::{
             Matrix,
             csr::{CSRMatrix, CSRMatrixArgs},
-            dense::{DenseMatrix, DenseMatrixArgs, Layout},
+            dense::{DenseMatrix, DenseMatrixArgs, DenseMatrixRef, Layout},
         },
         msolver::{self, MSolver},
         preconditioner as pc,
