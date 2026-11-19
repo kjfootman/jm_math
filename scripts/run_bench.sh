@@ -10,4 +10,4 @@ TEST_NAME="gmres"
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
 
-cargo bench -- "$TEST_NAME"
+RAYON_NUM_THREADS=8 cargo bench -- "$TEST_NAME"
