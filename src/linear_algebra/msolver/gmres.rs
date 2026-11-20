@@ -155,7 +155,8 @@ impl MSolver for Gmres {
             }
 
             // solve the upper triangular
-            triangular::solve_upper_triangular(H.values(), g, y)?;
+            // triangular::solve_upper_triangular(H.values(), g, y)?;
+            triangular::solve_upper(H, g, y)?;
 
             // update solution
             r.fill(0.0);
@@ -174,6 +175,8 @@ impl MSolver for Gmres {
             if *iter == max_iter {
                 log::warn!("Maximum iteration exceeded");
             }
+
+            log::debug!("iter: {}, residual: {:10.6E}", iter, residual);
         }
 
         Ok(())
@@ -293,7 +296,7 @@ mod tests {
     }
 
     #[test]
-    fn gmres() -> Result<(), Error> {
+    fn mgs_gmres() -> Result<(), Error> {
         init();
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 5, 9, 12];
@@ -316,7 +319,8 @@ mod tests {
             .with_max_iter(50)
             .with_tolerance(1E-7)
             // restart 최대 4까지 가능 --> basis 벡터 4개
-            .with_restart(4)
+            // .with_restart(4)
+            .with_restart(3)
             .build();
 
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;

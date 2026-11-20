@@ -44,7 +44,8 @@ fn gmres(bencher: Bencher, path: &str) {
             let mut gmres = GmresBuilder::new()
                 .with_max_iter(500)
                 .with_restart(20)
-                .with_tolerance(1E-12)
+                // .with_tolerance(1E-12)
+                .with_tolerance(1E-8)
                 .build();
 
             gmres.solve(&M, &pc, &f, &mut x).unwrap();
@@ -71,7 +72,8 @@ fn hgmres(bencher: Bencher, path: &str) {
             let mut hgmres = HgmresBuilder::new()
                 .with_max_iter(500)
                 .with_restart(20)
-                .with_tolerance(1E-12)
+                // .with_tolerance(1E-12)
+                .with_tolerance(1E-8)
                 .build();
             hgmres.solve(&M, &pc, &f, &mut x).unwrap();
             // print!(

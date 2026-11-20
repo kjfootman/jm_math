@@ -63,6 +63,7 @@ impl MSolver for Hgmres {
         let (m, n) = (A.rows(), A.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
+        // FIX: restart = self.restart
         let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
@@ -233,7 +234,25 @@ impl MSolver for Hgmres {
             }
 
             // solve the upper triangular
-            triangular::solve_upper_triangular(H.values(), g, y)?;
+            //-----------------------------------------------------------------------------//
+            // let mut y_old = vec![0.0; y.len()];
+            // let mut y_new = vec![0.0; y.len()];
+            // triangular::solve_upper_triangular(H.values(), g, &mut y_old)?;
+            // triangular::solve_upper(H, g, &mut y_new)?;
+            // println!("iter: {iter}");
+            // let tmp = y_old
+            //     .iter()
+            //     .zip(y_new.iter())
+            //     .map(|(old, new)| {
+            //         println!("{old}, {new}");
+            //         (new - old) * (new - old)
+            //     })
+            //     .sum::<f64>()
+            //     .sqrt();
+            // println!("test - test -test : {tmp}");
+            //-----------------------------------------------------------------------------//
+            // triangular::solve_upper_triangular(H.values(), g, y)?;
+            triangular::solve_upper(H, g, y)?;
 
             // update solution
             // z.fill(0.0);
@@ -253,7 +272,6 @@ impl MSolver for Hgmres {
             //     v[i] = 0.0;
             // }
 
-            // 검증필요
             //-----------------------------------------------------------------------------//
             z.fill(0.0);
             for i in (0..y.len()).rev() {
@@ -271,7 +289,11 @@ impl MSolver for Hgmres {
             *iter += 1;
             *residual = g[*restart].abs() / b_mag;
 
-            log::debug!("iter: {}, residual: {:10.4E}", iter, residual);
+            if *iter == max_iter {
+                log::warn!("Maximum iteration exceeded");
+            }
+
+            log::debug!("iter: {}, residual: {:10.6E}", iter, residual);
         }
 
         Ok(())
@@ -417,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    fn hgmres() -> Result<(), Error> {
+    fn hh_gmres() -> Result<(), Error> {
         init();
         let (rows, cols) = (4, 4);
         let row_ptr = vec![0, 3, 5, 9, 12];
@@ -439,8 +461,8 @@ mod tests {
         let mut hgmres = HgmresBuilder::new()
             .with_max_iter(50)
             .with_tolerance(1E-7)
-            .with_restart(4)
-            // .with_restart(3)
+            // .with_restart(4)
+            .with_restart(3)
             .build();
 
         hgmres.solve(&M, &pc::Idendity, &b, &mut x)?;

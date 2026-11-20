@@ -98,9 +98,10 @@ fn solve_upper_col_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f6
         let mut sum = source[i];
         let diag = matrix[i + lda * i];
 
-        for j in i + 1..m {
-            sum -= matrix[i + lda * j] * x[j];
-        }
+        // for j in i + 1..m {
+        //     sum -= matrix[i + lda * j] * x[j];
+        // }
+        sum -= (i + 1..m).map(|j| matrix[i + lda * j] * x[j]).sum::<f64>();
 
         x[i] = sum / diag;
     }
@@ -184,14 +185,14 @@ mod tests {
             cols,
             layout: Layout::RowMajor,
             #[rustfmt::skip]
-                    // row-major DenseMatrix
-                    values: vec![
-                        1.0, 2.0, 4.0,  7.0,
-                        0.0, 3.0, 5.0,  8.0,
-                        0.0, 0.0, 6.0,  9.0,
-                        0.0, 0.0, 0.0, 10.0,
-                        0.0, 0.0, 0.0,  0.0,
-                    ],
+            // row-major DenseMatrix
+            values: vec![
+                1.0, 2.0, 4.0,  7.0,
+                0.0, 3.0, 5.0,  8.0,
+                0.0, 0.0, 6.0,  9.0,
+                0.0, 0.0, 0.0, 10.0,
+                0.0, 0.0, 0.0,  0.0,
+            ],
         });
         let b = vec![14.0, 16.0, 15.0, 10.0, 0.0];
         let mut x = vec![0.0; cols];
@@ -216,13 +217,13 @@ mod tests {
             cols,
             layout: Layout::RowMajor,
             #[rustfmt::skip]
-                // row-major DenseMatrix
-                values: vec![
-                    1.0, 0.0, 0.0,  0.0,
-                    2.0, 3.0, 0.0,  0.0,
-                    4.0, 5.0, 6.0,  0.0,
-                    7.0, 8.0, 9.0, 10.0,
-                ],
+            // row-major DenseMatrix
+            values: vec![
+                1.0, 0.0, 0.0,  0.0,
+                2.0, 3.0, 0.0,  0.0,
+                4.0, 5.0, 6.0,  0.0,
+                7.0, 8.0, 9.0, 10.0,
+            ],
         });
         let b = vec![14.0, 16.0, 15.0, 10.0];
         let mut x = vec![0.0; cols];
@@ -351,60 +352,4 @@ mod tests {
 
         Ok(())
     }
-    // #[test]
-    // fn upper_triangular() -> Result<(), Error> {
-    //     // 1.0,  2.0,  4.0,  7.0,
-    //     // 0.0,  3.0,  5.0,  8.0,
-    //     // 0.0,  0.0,  6.0,  9.0,
-    //     // 0.0,  0.0,  0.0, 10.0,
-    //     let M = vec![
-    //         1.0, 0.0, 0.0, 0.0, 2.0, 3.0, 0.0, 0.0, 4.0, 5.0, 6.0, 0.0, 7.0, 8.0, 9.0, 10.0,
-    //     ];
-    //     let b = vec![14.0, 16.0, 15.0, 10.0];
-    //     let mut x = vec![0.0, 0.0, 0.0, 0.0];
-    //     let m = b.len();
-
-    //     if b.len() != x.len() {
-    //         return Err(Error::DimensionMismatch(format!(
-    //             "b: {}, x: {}",
-    //             b.len(),
-    //             x.len()
-    //         )));
-    //     }
-
-    //     solve_upper_triangular(&M, &b, &mut x)?;
-    //     solve_upper_col_major(&M, m, &b, &mut x);
-
-    //     assert_eq!(x, vec![1.0; m]);
-
-    //     Ok(())
-    // }
-
-    // #[test]
-    // fn lower_triangular() -> Result<(), Error> {
-    //     // 1.0,  0.0,  0.0,  0.0,
-    //     // 2.0,  5.0,  0.0,  0.0,
-    //     // 3.0,  6.0,  8.0,  0.0,
-    //     // 4.0,  7.0,  9.0, 10.0,
-    //     let M = vec![
-    //         1.0, 1.0, 1.0, 1.0, 2.0, 5.0, 0.0, 0.0, 3.0, 6.0, 8.0, 0.0, 4.0, 7.0, 9.0, 10.0,
-    //     ];
-    //     let b = vec![1.0, 7.0, 17.0, 30.0];
-    //     let mut x = vec![0.0, 0.0, 0.0, 0.0];
-    //     let m = b.len();
-
-    //     if b.len() != x.len() {
-    //         return Err(Error::DimensionMismatch(format!(
-    //             "b: {}, x: {}",
-    //             b.len(),
-    //             x.len()
-    //         )));
-    //     }
-
-    //     solve_lower_triangular(&M, m, &b, &mut x)?;
-
-    //     assert_eq!(x, vec![1.0; m]);
-
-    //     Ok(())
-    // }
 }

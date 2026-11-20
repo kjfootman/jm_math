@@ -12,7 +12,8 @@ fn main() -> Result<(), Error> {
         .with_max_iter(500)
         .with_restart(30)
         // .with_restart(15)
-        .with_tolerance(1E-12)
+        // .with_tolerance(1E-12)
+        .with_tolerance(1E-8)
         .build();
     let mut x = Vector::new(M.rows());
 
