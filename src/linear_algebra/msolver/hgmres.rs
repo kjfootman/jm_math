@@ -63,7 +63,7 @@ impl MSolver for Hgmres {
         let (m, n) = (A.rows(), A.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
-        // FIX: restart = self.restart
+        // TODO: let restart = self.restart
         let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
@@ -123,7 +123,8 @@ impl MSolver for Hgmres {
 
                 let u = &U[j];
                 // TODO: vector::dot 연산 사용 (slice만 인자로 넘기기)
-                let sigma = -2.0 * z.dot(u)?;
+                // let sigma = -2.0 * z.dot(u)?;
+                let sigma = -2.0 * vector::dot(&u[j..m], &z[j..m]);
 
                 for i in 0..(j + 1).min(z.len()) {
                     h[i] = z[i] + sigma * u[i];
@@ -176,18 +177,6 @@ impl MSolver for Hgmres {
                 // 5. calculate v[j] = P[0] * P[1] * ... P[j] * e[j]
                 v.fill(0.0);
                 v[j] = 1.0;
-                // for i in (0..j + 1).rev() {
-                //     let u = &U[i];
-                //     // householder::transform(u, v);
-                //     householder::transform(&u[i..m], &mut v[i..m]);
-                // }
-
-                // -2.0 * U ^ T * v
-                // for i in 0..j + 1 {
-                //     let u = &U[i];
-                //     c[i] = -2.0 * vector::dot(&u[i..m], &v[i..m]);
-                // }
-                // c = -2 * U ^ T * e
                 for i in 0..j + 1 {
                     c[i] = -2.0 * U[i][j];
                 }
@@ -196,13 +185,6 @@ impl MSolver for Hgmres {
                 // L: row major 메모리 구조
                 // - L^T 일 때 역방향 메인루프 (0..m).rev() -> 메모리 연속성 X
                 // - L 일 때 정방향 메인루프 (0..m) -> 메모리 연속성 O
-                //
-                // triangular::solve_lower_triangular(
-                //     &L.values()[0..m * (j + 1)],
-                //     m,
-                //     &c[0..j + 1],
-                //     &mut d[0..j + 1],
-                // )?;
                 triangular::solve_upper(&L.transpose(), c, &mut d[0..j + 1])?;
 
                 for i in 0..j + 1 {
@@ -219,13 +201,6 @@ impl MSolver for Hgmres {
                     c[i] = -2.0 * vector::dot(&u[i..m], &z[i..m]);
                 }
 
-                // U.iter()
-                //     .take(j + 1)
-                //     .for_each(|u| householder::transform(u, z));
-                // U.iter().take(j + 1).enumerate().for_each(|(i, u)| {
-                //     householder::transform(&u[i..m], &mut z[i..m]);
-                // });
-
                 triangular::solve_lower(L, c, &mut d[0..j + 1])?;
 
                 for i in 0..j + 1 {
@@ -233,46 +208,10 @@ impl MSolver for Hgmres {
                 }
             }
 
-            // solve the upper triangular
-            //-----------------------------------------------------------------------------//
-            // let mut y_old = vec![0.0; y.len()];
-            // let mut y_new = vec![0.0; y.len()];
-            // triangular::solve_upper_triangular(H.values(), g, &mut y_old)?;
-            // triangular::solve_upper(H, g, &mut y_new)?;
-            // println!("iter: {iter}");
-            // let tmp = y_old
-            //     .iter()
-            //     .zip(y_new.iter())
-            //     .map(|(old, new)| {
-            //         println!("{old}, {new}");
-            //         (new - old) * (new - old)
-            //     })
-            //     .sum::<f64>()
-            //     .sqrt();
-            // println!("test - test -test : {tmp}");
-            //-----------------------------------------------------------------------------//
-            // triangular::solve_upper_triangular(H.values(), g, y)?;
             triangular::solve_upper(H, g, y)?;
 
-            // update solution
-            // z.fill(0.0);
-            // v.fill(0.0);
-            // for i in (0..y.len()).rev() {
-            //     let u = &U[i];
-            //     // set unit vector
-            //     v[i] = 1.0;
-
-            //     // z = eta[j] * e[j] + z
-            //     z.scale_add_assign(y[i], v)?;
-
-            //     // z = P[j] * z
-            //     // householder::transform(u, z);
-            //     // TODO: variation method 적용
-            //     householder::transform(&u[i..m], &mut z[i..m]);
-            //     v[i] = 0.0;
-            // }
-
             //-----------------------------------------------------------------------------//
+            // update solution
             z.fill(0.0);
             for i in (0..y.len()).rev() {
                 let u = &U[i];
