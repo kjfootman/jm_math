@@ -6,8 +6,8 @@
 # TEST_NAME="vector_spmv"
 # TEST_NAME="conjugate_gradient"
 # TEST_NAME="gmres"
-# TEST_NAME="hgmres"
-TEST_NAME="solve_lower_col_major"
+TEST_NAME="hgmres"
+# TEST_NAME="solve_lower_col_major"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd

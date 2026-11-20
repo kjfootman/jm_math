@@ -121,6 +121,7 @@ impl MSolver for Hgmres {
                 };
 
                 let u = &U[j];
+                // TODO: vector::dot 연산 사용 (slice만 인자로 넘기기)
                 let sigma = -2.0 * z.dot(u)?;
 
                 for i in 0..(j + 1).min(z.len()) {
@@ -231,22 +232,33 @@ impl MSolver for Hgmres {
             triangular::solve_upper_triangular(H.values(), g, y)?;
 
             // update solution
+            // z.fill(0.0);
+            // v.fill(0.0);
+            // for i in (0..y.len()).rev() {
+            //     let u = &U[i];
+            //     // set unit vector
+            //     v[i] = 1.0;
+
+            //     // z = eta[j] * e[j] + z
+            //     z.scale_add_assign(y[i], v)?;
+
+            //     // z = P[j] * z
+            //     // householder::transform(u, z);
+            //     // TODO: variation method 적용
+            //     householder::transform(&u[i..m], &mut z[i..m]);
+            //     v[i] = 0.0;
+            // }
+
+            // 검증필요
+            //-----------------------------------------------------------------------------//
             z.fill(0.0);
-            v.fill(0.0);
             for i in (0..y.len()).rev() {
                 let u = &U[i];
-                // set unit vector
-                v[i] = 1.0;
 
-                // z = eta[j] * e[j] + z
-                z.scale_add_assign(y[i], v)?;
-
-                // z = P[j] * z
-                // householder::transform(u, z);
-                // TODO: variation method 적용
+                z[i] += y[i];
                 householder::transform(&u[i..m], &mut z[i..m]);
-                v[i] = 0.0;
             }
+            //-----------------------------------------------------------------------------//
 
             // x = x0 + M^-1 * z
             M.preconditioning(z, w)?;
@@ -254,6 +266,7 @@ impl MSolver for Hgmres {
 
             *iter += 1;
             *residual = g[*restart].abs() / b_mag;
+
             log::debug!("iter: {}, residual: {:10.4E}", iter, residual);
         }
 
