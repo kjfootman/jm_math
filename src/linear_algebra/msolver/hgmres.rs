@@ -182,9 +182,13 @@ impl MSolver for Hgmres {
                 // }
 
                 // -2.0 * U ^ T * v
+                // for i in 0..j + 1 {
+                //     let u = &U[i];
+                //     c[i] = -2.0 * vector::dot(&u[i..m], &v[i..m]);
+                // }
+                // c = -2 * U ^ T * e
                 for i in 0..j + 1 {
-                    let u = &U[i];
-                    c[i] = -2.0 * vector::dot(&u[i..m], &v[i..m]);
+                    c[i] = -2.0 * U[i][j];
                 }
 
                 // FIX: L일 때와 L^T일 때 triangular::solver_lower_triangular 솔버 구분 필요
