@@ -130,9 +130,10 @@ fn solve_lower_col_major(matrix: &[f64], lda: usize, source: &[f64], x: &mut [f6
         let mut sum = source[i];
         let diag = matrix[i + lda * i];
 
-        for j in 0..i {
-            sum -= matrix[i + lda * j] * x[j];
-        }
+        // for j in 0..i {
+        //     sum -= matrix[i + lda * j] * x[j];
+        // }
+        sum -= (0..i).map(|j| matrix[i + lda * j] * x[j]).sum::<f64>();
 
         x[i] = sum / diag;
     }

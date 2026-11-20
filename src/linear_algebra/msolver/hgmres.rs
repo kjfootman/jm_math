@@ -109,9 +109,10 @@ impl MSolver for Hgmres {
 
             for j in 0..*restart + 1 {
                 // 3. calculate householder vector u of z
-                // let u = &mut U[j];
+                let u = &mut U[j][j..m];
                 // householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
-                householder::calc_householder_vec(&z[j..m], &mut U[j][j..m]);
+                // householder::calc_householder_vec(&z[j..m], &mut U[j][j..m]);
+                householder::calc_householder_vec(&z[j..m], u);
 
                 // 4. calculate h[j-1] = P[j] * z;
                 let h = if j != 0 {
