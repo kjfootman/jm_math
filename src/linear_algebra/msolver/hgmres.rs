@@ -64,7 +64,8 @@ impl MSolver for Hgmres {
         let iter = &mut self.iter;
         let residual = &mut self.residual;
         // TODO: let restart = self.restart
-        let restart = &mut self.restart;
+        let mut restart = self.restart;
+        // let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
@@ -72,9 +73,9 @@ impl MSolver for Hgmres {
         *iter = 0;
         *residual = f64::MAX;
 
-        if *restart > m {
+        if restart > m {
             log::warn!("Restart number must be less than {m}. Setting restart number to {m}.");
-            *restart = m;
+            restart = m;
         }
 
         if n != x.len() {
@@ -84,7 +85,7 @@ impl MSolver for Hgmres {
         }
 
         let workspace = &mut self.workspace;
-        workspace.set_workspace(m, *restart);
+        workspace.set_workspace(m, restart);
 
         let v = &mut workspace.v;
         let w = &mut workspace.w;
@@ -107,11 +108,9 @@ impl MSolver for Hgmres {
 
             // g.fill(0.0);
 
-            for j in 0..*restart + 1 {
+            for j in 0..restart + 1 {
                 // 3. calculate householder vector u of z
                 let u = &mut U[j][j..m];
-                // householder::calc_householder_vec(&z[j..m], &mut u[j..m]);
-                // householder::calc_householder_vec(&z[j..m], &mut U[j][j..m]);
                 householder::calc_householder_vec(&z[j..m], u);
 
                 // 4. calculate h[j-1] = P[j] * z;
@@ -123,8 +122,6 @@ impl MSolver for Hgmres {
                 };
 
                 let u = &U[j];
-                // TODO: vector::dot 연산 사용 (slice만 인자로 넘기기)
-                // let sigma = -2.0 * z.dot(u)?;
                 let sigma = -2.0 * vector::dot(&u[j..m], &z[j..m]);
 
                 for i in 0..(j + 1).min(z.len()) {
@@ -143,7 +140,7 @@ impl MSolver for Hgmres {
 
                     if h[j].abs() < tol {
                         log::debug!("lucky breakdown");
-                        *restart = j;
+                        restart = j;
                         break;
                     }
 
@@ -157,14 +154,12 @@ impl MSolver for Hgmres {
                     g[0] = h[0]
                 }
 
-                if j >= *restart {
+                if j >= restart {
                     break;
                 }
 
                 // Lower matrix for variation method
                 //-----------------------------------------------------------------------------//
-                // FIX: j != 0 일 경우만 적용
-                // let l = L.column_mut(j)?;
                 let l = L.row_mut(j)?;
                 l[j] = 1.0;
 
@@ -227,7 +222,7 @@ impl MSolver for Hgmres {
             x.add_assign(w)?;
 
             *iter += 1;
-            *residual = g[*restart].abs() / b_mag;
+            *residual = g[restart].abs() / b_mag;
 
             if *iter == max_iter {
                 log::warn!("Maximum iteration exceeded");

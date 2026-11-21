@@ -64,7 +64,8 @@ impl MSolver for Gmres {
         let (m, n) = (A.rows(), A.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
-        let restart = &mut self.restart;
+        let mut restart = self.restart;
+        // let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
@@ -72,9 +73,9 @@ impl MSolver for Gmres {
         *iter = 0;
         *residual = f64::MAX;
 
-        if *restart > m {
+        if restart > m {
             log::warn!("Restart number must be less than {m}. Setting restart number to {m}.");
-            *restart = m;
+            restart = m;
         }
 
         if n != x.len() {
@@ -84,7 +85,7 @@ impl MSolver for Gmres {
         }
 
         let workspace = &mut self.workspace;
-        workspace.set_workspace(m, *restart);
+        workspace.set_workspace(m, restart);
 
         let r = &mut workspace.r;
         let w = &mut workspace.w;
@@ -110,7 +111,7 @@ impl MSolver for Gmres {
             // g.fill(0.0);
             g[0] = beta;
 
-            for j in 0..*restart {
+            for j in 0..restart {
                 // 4. w = A * M^-1 * v[j]
                 v = &mut V[j];
                 // 4.1 r = M^-1 * v[j] (결과를 r에 덮어쓰기)
@@ -139,7 +140,7 @@ impl MSolver for Gmres {
 
                 if h[j + 1].abs() < tol {
                     log::debug!("lucky breakdown");
-                    *restart = j + 1;
+                    restart = j + 1;
                     break;
                 }
 
@@ -160,7 +161,7 @@ impl MSolver for Gmres {
 
             // update solution
             r.fill(0.0);
-            for i in 0..*restart {
+            for i in 0..restart {
                 v = &mut V[i];
                 v.scale_assign(y[i]);
                 r.add_assign(v)?;
@@ -170,7 +171,7 @@ impl MSolver for Gmres {
             x.add_assign(w)?;
 
             *iter += 1;
-            *residual = g[*restart].abs() / b_mag;
+            *residual = g[restart].abs() / b_mag;
 
             if *iter == max_iter {
                 log::warn!("Maximum iteration exceeded");
