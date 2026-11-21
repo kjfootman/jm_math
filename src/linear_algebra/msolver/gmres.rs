@@ -107,7 +107,7 @@ impl MSolver for Gmres {
             v.scale(beta.recip(), r);
 
             // 4. g = beta * e0
-            g.fill(0.0);
+            // g.fill(0.0);
             g[0] = beta;
 
             for j in 0..*restart {
