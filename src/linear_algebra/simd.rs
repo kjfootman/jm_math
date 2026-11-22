@@ -257,19 +257,28 @@ impl<'a> WithSimd for VectorNeg<'a> {
     }
 }
 
-// #[test]
-// fn hgmres_test() {
-//     let mut out = vec![0.0; 4];
-//     let scales = vec![1.0, 2.0, 3.0, 4.0];
-//     let vecs = vec![
-//         Vector::from(vec![4.0; 4]),
-//         Vector::from(vec![3.0; 4]),
-//         Vector::from(vec![2.0; 4]),
-//         Vector::from(vec![1.0; 4]),
-//     ];
-//     let tmp = simd::VectorScaleAddAssignMany {
-//         out: &mut out,
-//         scales: &scales,
-//         vecs: &vecs,
-//     };
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{error::Error, linear_algebra::vector::Vector};
+
+    #[test]
+    fn vectorScaleAddAssignMany() -> Result<(), Error> {
+        let mut out = vec![0.0; 4];
+        let scales = vec![1.0, 2.0, 3.0, 4.0];
+        let vecs = vec![
+            Vector::from(vec![4.0; 4]),
+            Vector::from(vec![3.0; 4]),
+            Vector::from(vec![2.0; 4]),
+            Vector::from(vec![1.0; 4]),
+        ];
+
+        let tmp = VectorScaleAddAssignMany {
+            out: &mut out,
+            scales: &scales,
+            vecs: &vecs,
+        };
+
+        Ok(())
+    }
+}
