@@ -1,3 +1,4 @@
+use crate::linear_algebra::vector;
 use pulp::{Arch, Simd, WithSimd};
 use std::sync::OnceLock;
 
@@ -199,6 +200,22 @@ impl<'a> WithSimd for VectorScaleAddAssign<'a> {
     }
 }
 
+//-----------------------------------------------------------------------------//
+pub struct VectorScaleAddAssignMany<'a> {
+    pub out: &'a mut [f64],
+    pub scales: &'a [f64],
+    pub vecs: &'a [vector::Vector],
+}
+impl<'a> WithSimd for VectorScaleAddAssignMany<'a> {
+    type Output = ();
+
+    #[inline(always)]
+    fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+        let tmp: &[f64] = &self.vecs[0];
+        // let tmp: &[f64] = &self.vecs[1];
+    }
+}
+
 pub struct VectorDot<'a>(pub &'a [f64], pub &'a [f64]);
 impl<'a> WithSimd for VectorDot<'a> {
     type Output = f64;
@@ -239,3 +256,20 @@ impl<'a> WithSimd for VectorNeg<'a> {
         tail.iter_mut().for_each(|v| *v = -*v);
     }
 }
+
+// #[test]
+// fn hgmres_test() {
+//     let mut out = vec![0.0; 4];
+//     let scales = vec![1.0, 2.0, 3.0, 4.0];
+//     let vecs = vec![
+//         Vector::from(vec![4.0; 4]),
+//         Vector::from(vec![3.0; 4]),
+//         Vector::from(vec![2.0; 4]),
+//         Vector::from(vec![1.0; 4]),
+//     ];
+//     let tmp = simd::VectorScaleAddAssignMany {
+//         out: &mut out,
+//         scales: &scales,
+//         vecs: &vecs,
+//     };
+// }

@@ -9,7 +9,8 @@ fn main() -> Result<(), Error> {
     let b = get_source(&M);
     let mut cg = msolver::ConjugateGradientBuilder::new()
         .with_max_iter(5000)
-        .with_tolerance(1E-12)
+        // .with_tolerance(1E-12)
+        .with_tolerance(1E-8)
         .build();
     let mut x = Vector::new(M.rows());
 
