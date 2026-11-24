@@ -26,7 +26,8 @@
 - [x] GMRES 솔버 개발
   - [x] Given's rotation 개발
   - [ ] bound_uncheck 적용
-- [ ] HGMRES 솔버 개발
+- [x] HGMRES 솔버 개발
+  - [x] variation 구현
 - [x] Conjugate Gradient 솔버 개발
 - [x] Gauss-Seidel 솔버 bound check 해제
 - [ ] 각 솔버 별 initialize 매소드 추가

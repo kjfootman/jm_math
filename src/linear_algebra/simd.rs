@@ -211,8 +211,59 @@ impl<'a> WithSimd for VectorScaleAddAssignMany<'a> {
 
     #[inline(always)]
     fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
-        let tmp: &[f64] = &self.vecs[0];
-        // let tmp: &[f64] = &self.vecs[1];
+        let vecs = self.vecs;
+        let scales = self.scales;
+        let (out_head, out_tail) = S::as_mut_simd_f64s(self.out);
+        let mut i = 0;
+
+        while i + 4 <= vecs.len() {
+            let s0 = scales[i];
+            let s1 = scales[i + 1];
+            let s2 = scales[i + 2];
+            let s3 = scales[i + 3];
+
+            let s0_simd = simd.splat_f64s(s0);
+            let s1_simd = simd.splat_f64s(s1);
+            let s2_simd = simd.splat_f64s(s2);
+            let s3_simd = simd.splat_f64s(s3);
+
+            let (v0_head, v0_tail) = S::as_simd_f64s(&vecs[i]);
+            let (v1_head, v1_tail) = S::as_simd_f64s(&vecs[i + 1]);
+            let (v2_head, v2_tail) = S::as_simd_f64s(&vecs[i + 2]);
+            let (v3_head, v3_tail) = S::as_simd_f64s(&vecs[i + 3]);
+
+            for j in 0..out_head.len() {
+                let mut value = out_head[j];
+                value = simd.mul_add_f64s(s0_simd, v0_head[j], value);
+                value = simd.mul_add_f64s(s1_simd, v1_head[j], value);
+                value = simd.mul_add_f64s(s2_simd, v2_head[j], value);
+                value = simd.mul_add_f64s(s3_simd, v3_head[j], value);
+                out_head[j] = value;
+            }
+
+            for j in 0..out_tail.len() {
+                out_tail[j] +=
+                    s0 * v0_tail[j] + s1 * v1_tail[j] + s2 * v2_tail[j] + s3 * v3_tail[j];
+            }
+
+            i += 4;
+        }
+
+        while i < vecs.len() {
+            let scale = scales[i];
+            let s0_simd = simd.splat_f64s(scale);
+            let (v0_head, v0_tail) = S::as_simd_f64s(&vecs[i]);
+
+            for j in 0..out_head.len() {
+                out_head[j] = simd.mul_add_f64s(s0_simd, v0_head[j], out_head[j]);
+            }
+
+            for j in 0..out_tail.len() {
+                out_tail[j] += scale * v0_tail[j];
+            }
+
+            i += 1;
+        }
     }
 }
 
@@ -262,22 +313,69 @@ mod tests {
     use super::*;
     use crate::{error::Error, linear_algebra::vector::Vector};
 
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
     #[test]
     fn vectorScaleAddAssignMany() -> Result<(), Error> {
-        let mut out = vec![0.0; 4];
-        let scales = vec![1.0, 2.0, 3.0, 4.0];
+        //-----------------------------------------------------------------------------//
+        // test1
+        let mut out = vec![1.0; 13];
+        let scales = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let vecs = vec![
-            Vector::from(vec![4.0; 4]),
-            Vector::from(vec![3.0; 4]),
-            Vector::from(vec![2.0; 4]),
-            Vector::from(vec![1.0; 4]),
+            Vector::from(vec![4.0; 13]),
+            Vector::from(vec![3.0; 13]),
+            Vector::from(vec![2.0; 13]),
+            Vector::from(vec![1.0; 13]),
+            Vector::from(vec![4.0; 13]),
         ];
 
-        let tmp = VectorScaleAddAssignMany {
+        let arch = arch();
+        arch.dispatch(VectorScaleAddAssignMany {
             out: &mut out,
             scales: &scales,
             vecs: &vecs,
-        };
+        });
+
+        assert_eq!(out, vec![41.0; 13]);
+
+        //-----------------------------------------------------------------------------//
+        // test2
+        let mut out = vec![1.0; 13];
+        let scales = vec![1.0, 2.0, 3.0];
+        let vecs = vec![
+            Vector::from(vec![4.0; 13]),
+            Vector::from(vec![3.0; 13]),
+            Vector::from(vec![2.0; 13]),
+        ];
+
+        arch.dispatch(VectorScaleAddAssignMany {
+            out: &mut out,
+            scales: &scales,
+            vecs: &vecs,
+        });
+
+        assert_eq!(out, vec![17.0; 13]);
+
+        //-----------------------------------------------------------------------------//
+        // test3
+        let mut out = vec![1.0; 13];
+        let scales = vec![1.0, 2.0, 3.0, 4.0];
+        let vecs = vec![
+            Vector::from(vec![4.0; 13]),
+            Vector::from(vec![3.0; 13]),
+            Vector::from(vec![2.0; 13]),
+            Vector::from(vec![1.0; 13]),
+        ];
+
+        arch.dispatch(VectorScaleAddAssignMany {
+            out: &mut out,
+            scales: &scales,
+            vecs: &vecs,
+        });
+
+        assert_eq!(out, vec![21.0; 13]);
 
         Ok(())
     }

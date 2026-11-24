@@ -5,9 +5,10 @@
 # TEST_NAME="gauss_seidel"
 # TEST_NAME="vector_spmv"
 # TEST_NAME="conjugate_gradient"
-TEST_NAME="mgs_gmres"
+# TEST_NAME="mgs_gmres"
 # TEST_NAME="hh_gmres"
 # TEST_NAME="solve_lower_col_major"
+TEST_NAME="vectorScaleAddAssignMany"
 
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
