@@ -122,6 +122,30 @@ impl Vector {
         Ok(())
     }
 
+    pub fn scale_add_assign_many(&mut self, scales: &[f64], vecs: &[Vector]) -> Result<(), Error> {
+        //  self += scale * a
+
+        // if scales.len() != vecs.len() {
+        //     // let msg = "Cannot scale and add assign vectors of different dimensions ()";
+        //     let msg = format!(
+        //         "Cannot scale and add assign vectors of different dimensions. scales.len(): {} vecs.len(): {}",
+        //         scales.len(),
+        //         vecs.len()
+        //     );
+        //     error!("{msg}");
+        //     Err(Error::DimensionMismatch(msg))?
+        // }
+
+        let arch = simd::arch();
+        arch.dispatch(simd::VectorScaleAddAssignMany {
+            out: self,
+            scales,
+            vecs,
+        });
+
+        Ok(())
+    }
+
     pub fn scale_sub_assign(&mut self, scale: f64, a: &[f64]) -> Result<(), Error> {
         //  self -= scale * a
 

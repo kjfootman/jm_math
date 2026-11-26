@@ -183,9 +183,10 @@ impl MSolver for Hgmres {
                 // - L 일 때 정방향 메인루프 (0..m) -> 메모리 연속성 O
                 triangular::solve_upper(&L.transpose(), c, &mut d[0..j + 1])?;
 
-                for i in 0..j + 1 {
-                    v.scale_add_assign(d[i], &U[i])?;
-                }
+                // for i in 0..j + 1 {
+                //     v.scale_add_assign(d[i], &U[i])?;
+                // }
+                v.scale_add_assign_many(&d[0..j + 1], &U[0..j + 1])?;
 
                 // 7. calculate z[j] = P[j] * P[j-1] * ... * P[0] * A * M^-1 * v[j]
                 M.preconditioning(v, w)?;
@@ -199,9 +200,10 @@ impl MSolver for Hgmres {
 
                 triangular::solve_lower(L, c, &mut d[0..j + 1])?;
 
-                for i in 0..j + 1 {
-                    z.scale_add_assign(d[i], &U[i])?;
-                }
+                // for i in 0..j + 1 {
+                //     z.scale_add_assign(d[i], &U[i])?;
+                // }
+                z.scale_add_assign_many(&d[0..j + 1], &U[0..j + 1])?;
             }
 
             triangular::solve_upper(H, g, y)?;
@@ -314,6 +316,9 @@ impl Workspace {
         if self.U.len() < restart + 1 {
             self.U.resize(restart + 1, Vector::new(rows));
         }
+        // if self.U.len() < restart {
+        //     self.U.resize(restart, Vector::new(rows));
+        // }
 
         if self.g.len() < restart + 1 {
             self.g.resize(restart + 1, 0.0);

@@ -247,8 +247,14 @@ impl<'a> WithSimd for VectorScaleAddAssignMany<'a> {
             }
 
             i += 4;
+            // println!("i: {i}");
         }
 
+        // println!(
+        //     "vecs.len() {}, scales.len() {} i {i}",
+        //     vecs.len(),
+        //     scales.len()
+        // );
         while i < vecs.len() {
             let scale = scales[i];
             let s0_simd = simd.splat_f64s(scale);
@@ -313,9 +319,9 @@ mod tests {
     use super::*;
     use crate::{error::Error, linear_algebra::vector::Vector};
 
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
+    // fn init() {
+    //     let _ = env_logger::builder().is_test(true).try_init();
+    // }
 
     #[test]
     fn vectorScaleAddAssignMany() -> Result<(), Error> {
