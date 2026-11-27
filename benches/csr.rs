@@ -1,5 +1,4 @@
 #![allow(non_snake_case)]
-
 use divan::Bencher;
 use jm_lib::prelude::*;
 
@@ -7,7 +6,7 @@ fn main() {
     divan::main();
 }
 
-fn get_source(M: &CSRMatrix) -> Vector {
+fn source_for_unit_solution(M: &CSRMatrix) -> Vector {
     let ia = M.row_ptr();
     let aa = M.values();
 
@@ -95,7 +94,7 @@ fn vector_calc_residual_bench(bencher: Bencher, path: &str) {
         .with_inputs(|| {
             let M = CSRMatrix::from_mtx(path).unwrap();
             let rows = M.rows();
-            let b = get_source(&M);
+            let b = source_for_unit_solution(&M);
             let x = Vector::from(vec![1.0; rows]);
             let r = Vector::from(vec![0.0; rows]);
             let tmp = Vector::from(vec![0.0; rows]);
@@ -115,7 +114,7 @@ fn vector_calc_residual2_bench(bencher: Bencher, path: &str) {
         .with_inputs(|| {
             let M = CSRMatrix::from_mtx(path).unwrap();
             let rows = M.rows();
-            let b = get_source(&M);
+            let b = source_for_unit_solution(&M);
             let x = Vector::from(vec![1.0; rows]);
             let r = Vector::from(vec![0.0; rows]);
 
@@ -131,7 +130,7 @@ fn conjugate_gradient(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
             let M = CSRMatrix::from_mtx(path).unwrap();
-            let b = get_source(&M);
+            let b = source_for_unit_solution(&M);
             let x = Vector::new(M.rows());
 
             (M, x, b)

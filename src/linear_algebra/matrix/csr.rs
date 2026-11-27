@@ -252,16 +252,16 @@ pub fn find_diag_ptr(row_ptr: &[u32], col_indices: &[u32]) -> Result<Vec<u32>, E
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils;
 
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
+    // fn init() {
+    //     let _ = env_logger::builder().is_test(true).try_init();
+    // }
 
     #[test]
-    fn csr_diagonal() -> Result<(), Error> {
+    fn diagonal() -> Result<(), Error> {
         // 대각성분 찾기 기능 검증
-        // initialize test
-        init();
+        test_utils::init_env_logger();
 
         // case1: 대각 성분에 0 이 없을 경우
         log::debug!("Case1 - zero value is not contained in diagonal");
@@ -283,10 +283,9 @@ mod tests {
     }
 
     #[test]
-    fn csr_from_mtx() -> Result<(), Error> {
+    fn from_mtx() -> Result<(), Error> {
         // MTX 포맷 읽기 기능 검증
-        // initialize test
-        init();
+        test_utils::init_env_logger();
 
         let path = "resources/mtx/3x3Test.mtx";
         let matrix = CSRMatrix::from_mtx(path)?;
@@ -302,10 +301,9 @@ mod tests {
     }
 
     #[test]
-    fn csr_from_coordinate() -> Result<(), Error> {
+    fn from_coordinate() -> Result<(), Error> {
         // coordinate 배열로부터 생성된 CSRMatrix 검증
-        // initialize test
-        init();
+        test_utils::init_env_logger();
 
         let (rows, cols) = (3, 3);
         let coordinates = vec![

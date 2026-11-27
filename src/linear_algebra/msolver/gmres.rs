@@ -65,7 +65,6 @@ impl MSolver for Gmres {
         let iter = &mut self.iter;
         let residual = &mut self.residual;
         let mut restart = self.restart;
-        // let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
@@ -158,7 +157,6 @@ impl MSolver for Gmres {
             }
 
             // solve the upper triangular
-            // triangular::solve_upper_triangular(H.values(), g, y)?;
             triangular::solve_upper(H, g, y)?;
 
             // update solution
@@ -290,34 +288,16 @@ impl Workspace {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::linear_algebra::{
-        matrix::csr::{self, CSRMatrix, CSRMatrixArgs},
-        preconditioner as pc,
-    };
-
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
+    use crate::{linear_algebra::preconditioner as pc, test_utils};
+    use approx::assert_relative_eq;
 
     #[test]
     fn mgs_gmres() -> Result<(), Error> {
-        init();
-        let (rows, cols) = (4, 4);
-        let row_ptr = vec![0, 3, 5, 9, 12];
-        let col_indices = vec![0, 2, 3, 1, 2, 0, 1, 2, 3, 0, 2, 3];
-        let diag_ptr = csr::find_diag_ptr(&row_ptr, &col_indices).ok();
-        let values = vec![1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 1.0, 3.0, 1.0, 3.0, 1.0, 4.0];
+        test_utils::init_env_logger();
 
-        let M = CSRMatrix::from_args(CSRMatrixArgs {
-            rows,
-            cols,
-            row_ptr,
-            diag_ptr,
-            col_indices,
-            values,
-        });
-        let b = Vector::from(vec![6.0, 3.0, 7.0, 8.0]);
-        let mut x = Vector::new(rows);
+        let M = test_utils::symm_4x4_csr()?;
+        let b = test_utils::source_for_unit_solution(&M);
+        let mut x = Vector::new(M.cols());
 
         let mut gmres = GmresBuilder::new()
             .with_max_iter(50)
@@ -327,9 +307,25 @@ mod tests {
             .with_restart(3)
             .build();
 
+        // gmres 솔버
         gmres.solve(&M, &pc::Idendity, &b, &mut x)?;
 
-        log::debug!("iter: {}, residual: {:.2E}", gmres.iter(), gmres.residual());
+        // 수렴성 테스트
+        assert!(
+            gmres.residual() < 1E-7,
+            "{} failed to converge: iter={}, residual={:.2E}",
+            gmres.label(),
+            gmres.iter(),
+            gmres.residual()
+        );
+
+        // 수치해와 해석해의 근사 일치 검증
+        assert_relative_eq!(
+            x,
+            Vector::from(vec![1.0; 4]),
+            epsilon = 1E-10,
+            max_relative = 1E-6
+        );
 
         Ok(())
     }
