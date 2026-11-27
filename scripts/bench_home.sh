@@ -10,4 +10,10 @@ TEST_NAME="gmres"
 BASE=$(dirname "$0")
 cd "$BASE/.." || exit && pwd
 
-RAYON_NUM_THREADS=8 cargo bench -- "$TEST_NAME"
+# 홈 PC 테스트 용
+RAYON_NUM_THREADS=4 cargo bench -- "$TEST_NAME"
+
+# 서버 테스트 용 (2 socket)
+# RAYON_NUM_THREADS=4 \
+# taskset -c 0-3 \
+# cargo bench -- "$TEST_NAME"

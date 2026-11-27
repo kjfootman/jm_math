@@ -27,7 +27,7 @@ fn get_source(M: &CSRMatrix) -> Vector {
     Vector::from(arr)
 }
 
-#[divan::bench(sample_count = 5, sample_size = 2, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
+#[divan::bench(sample_count = 15, sample_size = 1, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
 fn gmres(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
@@ -57,7 +57,7 @@ fn gmres(bencher: Bencher, path: &str) {
         });
 }
 
-#[divan::bench(sample_count = 5, sample_size = 2, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
+#[divan::bench(sample_count = 15, sample_size = 1, args=["resources/mtx/bcsstk16.mtx", "resources/mtx/bcsstk18.mtx"])]
 fn hgmres(bencher: Bencher, path: &str) {
     bencher
         .with_inputs(|| {
