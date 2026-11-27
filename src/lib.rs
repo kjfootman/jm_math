@@ -2,3 +2,6 @@
 pub mod error;
 pub mod linear_algebra;
 pub mod prelude;
+
+#[cfg(test)]
+mod test_utils;

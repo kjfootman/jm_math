@@ -139,7 +139,9 @@ impl MSolver for Gmres {
                 }
 
                 if h[j + 1].abs() < tol {
+                    #[cfg(debug_assertions)]
                     log::debug!("lucky breakdown");
+
                     restart = j + 1;
                     break;
                 }
@@ -177,6 +179,7 @@ impl MSolver for Gmres {
                 log::warn!("Maximum iteration exceeded");
             }
 
+            #[cfg(debug_assertions)]
             log::debug!("iter: {}, residual: {:10.6E}", iter, residual);
         }
 

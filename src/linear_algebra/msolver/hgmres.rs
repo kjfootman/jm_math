@@ -63,9 +63,7 @@ impl MSolver for Hgmres {
         let (m, n) = (A.rows(), A.cols());
         let iter = &mut self.iter;
         let residual = &mut self.residual;
-        // TODO: let restart = self.restart
         let mut restart = self.restart;
-        // let restart = &mut self.restart;
         let tol = self.tolerance;
         let max_iter = self.max_iter;
         let b_mag = b.magnitude()?;
@@ -139,7 +137,9 @@ impl MSolver for Hgmres {
                     }
 
                     if h[j].abs() < tol {
+                        #[cfg(debug_assertions)]
                         log::debug!("lucky breakdown");
+
                         restart = j;
                         break;
                     }
@@ -230,6 +230,7 @@ impl MSolver for Hgmres {
                 log::warn!("Maximum iteration exceeded");
             }
 
+            #[cfg(debug_assertions)]
             log::debug!("iter: {}, residual: {:10.6E}", iter, residual);
         }
 
